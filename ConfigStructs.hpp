@@ -59,3 +59,13 @@ typedef struct ServerConfig
 }				ServerConfig;
 
 #endif
+
+class MyException: public std::exception
+{
+    private:
+        std::string msg;
+    public:
+        MyException(std::string msg): msg(msg){};
+        const char* what() const throw() {return msg.c_str();};
+        virtual ~MyException() _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW {};
+};
