@@ -1,14 +1,27 @@
 #include "../includes/server.hpp"
+#include <iostream>
+#include <stdexcept>
+#include <cstring>
+#include <arpa/inet.h>
 
-#define MAX_EVENTS 10
-#define BUFFER_SIZE 1024
-
-Server::Server(const ServerConfig& conf) : server_fd(-1), epoll_fd(-1), config(conf) {}
+Server::Server(const ServerConfig& config) : _config(config) {
+    _epoll_fd = -1;
+}
 
 Server::~Server() {
-    if(server_fd != -1) close(server_fd);
-    if(epoll_fd != -1) close(epoll_fd);
-    for(int fd : clients) close(fd);
+    for (size_t i = 0; i < _listen_fds.size(); i++)
+        close(_listen_fds[i]);
+    if (_epoll_fd != -1)
+        close(_epoll_fd);
+}
+
+int Server::createNonBlockingSocket(int domain, int type, int protocol) {
+    // Add SOCK_NONBLOCK to type
+    int sockfd = socket(domain, type | SOCK_NONBLOCK, protocol);
+    if (sockfd < 0) {
+        perror("socket failed");
+    }
+    return sockfd;
 }
 
 void Server::setNonBlocking(int fd) {
@@ -16,105 +29,105 @@ void Server::setNonBlocking(int fd) {
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
+bool Server::isListeningFd(int fd) {
+    for (size_t i = 0; i < _listen_fds.size(); i++)
+        if (_listen_fds[i] == fd)
+            return true;
+    return false;
+}
+
 void Server::init() {
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(server_fd < 0) throw std::runtime_error("socket failed");
-
-    int opt = 1;
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(config.port);
-
-    if(bind(server_fd, (sockaddr*)&addr, sizeof(addr)) < 0)
-        throw std::runtime_error("bind failed");
-
-    if(listen(server_fd, 10) < 0)
-        throw std::runtime_error("listen failed");
-
-    setNonBlocking(server_fd);
-
-    epoll_fd = epoll_create(10);
-    if(epoll_fd < 0)
+    _epoll_fd = epoll_create(1);
+    if (_epoll_fd == -1)
         throw std::runtime_error("epoll_create failed");
 
-    epoll_event ev;
-    ev.events = EPOLLIN;
-    ev.data.fd = server_fd;
-    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev);
+    for (size_t i = 0; i < _config.listens.size(); i++) {
+        int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (listen_fd == -1)
+            throw std::runtime_error("socket failed");
 
-    std::cout << "Server listening on port " << config.port << std::endl;
+        int opt = 1;
+        setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+        sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(_config.listens[i].second);
+        addr.sin_addr.s_addr = inet_addr(_config.listens[i].first.c_str());
+
+        if (bind(listen_fd, (sockaddr*)&addr, sizeof(addr)) == -1)
+            throw std::runtime_error("bind failed: " + std::string(strerror(errno)));
+
+        if (listen(listen_fd, SOMAXCONN) == -1)
+            throw std::runtime_error("listen failed");
+            
+        setNonBlocking(listen_fd);
+        // listen_fd = createNonBlockingSocket(AF_INET, SOCK_STREAM, 0);
+
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.fd = listen_fd;
+        if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
+            throw std::runtime_error("epoll_ctl failed");
+
+        _listen_fds.push_back(listen_fd);
+        std::cout << "Listening on " << _config.listens[i].first
+                  << ":" << _config.listens[i].second << "\n";
+        if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
+            throw std::runtime_error("epoll_ctl failed");
+    }
+}
+
+void Server::handleNewConnection(int listen_fd) {
+    int client_fd = accept(listen_fd, NULL, NULL);
+    if (client_fd == -1) return;
+    setNonBlocking(client_fd);
+    // client_fd = createNonBlockingSocket(AF_INET, SOCK_STREAM, 0);
+
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = client_fd;
+    epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
+
+    std::cout << "New client connected, fd=" << client_fd << "\n";
+}
+
+void Server::handleClientRequest(int client_fd) {
+    char buffer[4096];
+    int bytes = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+    if (bytes <= 0) {
+        close(client_fd);
+        std::cout << "Client disconnected fd=" << client_fd << "\n";
+        return;
+    }
+
+    buffer[bytes] = '\0';
+    std::cout << "Received request:\n" << buffer << "\n";
+
+    // Always return the index file
+    std::string body = "<html><body><h1>Hello from Webserv!</h1></body></html>";
+    std::string response =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Length: " + std::to_string(body.size()) + "\r\n"
+        "Content-Type: text/html\r\n"
+        "\r\n" +
+        body;
+
+    send(client_fd, response.c_str(), response.size(), 0);
+    close(client_fd);
 }
 
 void Server::run() {
-    epoll_event events[MAX_EVENTS];
+    struct epoll_event events[64];
 
-    while(true) {
-        int n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-        if(n < 0) continue;
-
-        for(int i = 0; i < n; i++) {
-            if(events[i].data.fd == server_fd)
-                acceptClients();
-            else
-                handleClient(events[i].data.fd);
+    while (true) {
+        int nfds = epoll_wait(_epoll_fd, events, 64, -1);
+        for (int i = 0; i < nfds; i++) {
+            int fd = events[i].data.fd;
+            if (isListeningFd(fd)) {
+                handleNewConnection(fd);
+            } else if (events[i].events & EPOLLIN) {
+                handleClientRequest(fd);
+            }
         }
     }
-}
-
-void Server::acceptClients() {
-    while(true) {
-        sockaddr_in client_addr;
-        socklen_t len = sizeof(client_addr);
-        int cfd = accept(server_fd, (sockaddr*)&client_addr, &len);
-        if(cfd < 0) break;
-
-        setNonBlocking(cfd);
-
-        epoll_event ev;
-        ev.events = EPOLLIN;
-        ev.data.fd = cfd;
-        epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cfd, &ev);
-
-        clients.push_back(cfd);
-        std::cout << "Client connected: " << cfd << std::endl;
-    }
-}
-
-
-void Server::handleClient(int fd) {
-    char buffer[BUFFER_SIZE];
-    ssize_t r = recv(fd, buffer, sizeof(buffer)-1, 0);
-
-    if(r <= 0) { closeClient(fd); return; }
-    buffer[r] = '\0';
-    std::cout << "Request:\n" << buffer;
-
-    // Serve index file from config.root
-    std::string path = config.root + "/" + config.index;
-    std::ifstream file(path.c_str());
-    std::string body;
-    
-    if(file.is_open()) {
-        body.assign((std::istreambuf_iterator<char>(file)),
-                    (std::istreambuf_iterator<char>()));
-    } else {
-        body = "File not found";
-    }
-
-    std::string resp = "HTTP/1.1 200 OK\r\n";
-    resp += "Content-Length: " + std::to_string(body.size()) + "\r\n";
-    resp += "Content-Type: text/html\r\n\r\n";
-    resp += body;
-
-    send(fd, resp.c_str(), resp.size(), 0);
-    closeClient(fd);
-}
-
-void Server::closeClient(int fd) {
-    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-    close(fd);
-    clients.erase(std::remove(clients.begin(), clients.end(), fd), clients.end());
-    std::cout << "Client disconnected: " << fd << std::endl;
 }

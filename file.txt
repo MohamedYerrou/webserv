@@ -1,0 +1,21 @@
+server {
+    listen 127.0.0.1:8080;
+    
+    root /var/www/youtube;
+    index index1.html;
+    error_page 404 /errors/404.html;
+    error_page 302 /errors/302.html;
+    error_page 500 /errors/500.html;
+    error_page 200 /errors/200.html;
+
+    location /upload {
+        root /var/www/youtube/music;
+        methods GET POST DELETE;
+        return 200 /var/www/youtube/hiphop;
+    }
+
+    location /cgi-bin {
+        cgi .php /usr/bin/php-cgi;
+        cgi .py  /usr/bin/python3;
+    }
+}

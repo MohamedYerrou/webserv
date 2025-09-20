@@ -1,36 +1,23 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include <string>
 #include <vector>
+#include <string>
+#include <map>
 #include <netinet/in.h>
-#include <iostream>
-#include <stdexcept>
-#include <cstring>
+#include <sys/epoll.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/epoll.h>
-#include <arpa/inet.h>
-#include <algorithm>
-#include <fstream>
-
-struct ServerConfig {
-    int port;
-    std::string server_name;
-    std::string root;
-    std::string index;
-};
+#include "../ConfigStructs.hpp"
 
 class Server {
 private:
-    int server_fd;
-    int epoll_fd;
-    sockaddr_in addr;
-    ServerConfig config;
-    std::vector<int> clients;
+    ServerConfig _config;
+    std::vector<int> _listen_fds;
+    int _epoll_fd;
 
 public:
-    Server(const ServerConfig& conf);
+    Server(const ServerConfig& config);
     ~Server();
 
     void init();
@@ -38,9 +25,10 @@ public:
 
 private:
     void setNonBlocking(int fd);
-    void acceptClients();
-    void handleClient(int fd);
-    void closeClient(int fd);
+    int createNonBlockingSocket(int domain, int type, int protocol);
+    bool isListeningFd(int fd);
+    void handleNewConnection(int listen_fd);
+    void handleClientRequest(int client_fd);
 };
 
 #endif
