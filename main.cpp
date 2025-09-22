@@ -230,6 +230,7 @@ void	run_server(int epfd, std::vector<int>& fd_vect)
 						"\r\n"
 						"Hello";
 					send(fd, response.c_str(), response.size(), 0);
+					close(fd);
 				}
 			}
 		}
