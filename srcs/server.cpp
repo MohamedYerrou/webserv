@@ -38,12 +38,12 @@ bool Server::isListeningFd(int fd) {
 
 void Server::init() {
     _epoll_fd = epoll_create(1);
-    if (_epoll_fd == -1)
+    if (_epoll_fd < 0)
         throw std::runtime_error("epoll_create failed");
 
     for (size_t i = 0; i < _config.listens.size(); i++) {
         int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (listen_fd == -1)
+        if (listen_fd < 0)
             throw std::runtime_error("socket failed");
 
         int opt = 1;
@@ -68,12 +68,9 @@ void Server::init() {
         ev.data.fd = listen_fd;
         if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
             throw std::runtime_error("epoll_ctl failed");
-
         _listen_fds.push_back(listen_fd);
         std::cout << "Listening on " << _config.listens[i].first
                   << ":" << _config.listens[i].second << "\n";
-        if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
-            throw std::runtime_error("epoll_ctl failed");
     }
 }
 
