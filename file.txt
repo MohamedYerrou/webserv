@@ -1,7 +1,5 @@
 server {
     listen 127.0.0.1:7979;
-
-    
     root /var/www/youtube;
     index index1.html;
     error_page 404 /errors/404.html;

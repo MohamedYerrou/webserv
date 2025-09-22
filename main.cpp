@@ -223,14 +223,31 @@ void	run_server(int epfd, std::vector<int>& fd_vect)
 				{
 					buf[n] = '\0';
 					std::cout << buf << std::endl;
-					std::string response =
-						"HTTP/1.1 200 OK\r\n"
-						"Content-Length: 5\r\n"
-						"Content-Type: text/plain\r\n"
-						"\r\n"
-						"Hello";
-					send(fd, response.c_str(), response.size(), 0);
-					close(fd);
+					std::istringstream request(buf);
+					std::string method, path, version;
+					request >> method >> path >> version;
+
+					// if (method == "GET")
+					// {
+					// 	// GET FUNCTION
+					// }
+					// else if (method == "POST")
+					// {
+					// 	// POST FUNCTION
+					// }
+					// else if (method == "DELETE")
+					// {
+					// 	// DELETE FUNCTION
+					// }
+					// else
+					// {
+						std::string response =
+						"HTTP/1.1 405 Method Not Allowed\r\n"
+                		"Content-Length: 0\r\n"
+                		"Connection: close\r\n\r\n";
+						send(fd, response.c_str(), response.size(), 0);
+						close(fd);
+					// }
 				}
 			}
 		}
