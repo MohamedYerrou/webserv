@@ -6,12 +6,15 @@
 #include <map>
 #include <sstream>
 #include <cstdlib>
+#include <vector>
+#include <cctype>
 
 class Request
 {
     private:
         std::string method;
         std::string uri;
+        std::string path;
         std::string protocol;
         std::map<std::string, std::string> headers;
         std::string body;
@@ -28,10 +31,14 @@ class Request
         void    parseHeaders(const std::string& raw);
         void    parseBody(const std::string& raw);
         size_t  getContentLength() const;
+        bool    parseMethod(const std::string& method);
+        bool    parseUri(const std::string& uri);
+        std::string normalizePath(const std::string& path);
+        std::string decodeUri(const std::string& uri);
 };
 
 std::string trim(std::string str);
-int stringToInt(const std::string& str);
+int stringToInt(const std::string& str, int base = 10);
 void    parsedRequest(Request req);
 
 #endif 

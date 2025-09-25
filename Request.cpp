@@ -45,6 +45,86 @@ size_t  Request::getContentLength() const
     return 0;
 }
 
+bool Request::parseMethod(const std::string& method)
+{
+    // std::cout << "Method: " << method << std::endl;
+    if (method.empty())
+        return false;
+    if (method == "GET" || method == "POST" || method == "DELETE")
+        return true;
+    return false;
+}
+
+std::string Request::decodeUri(const std::string& uri)
+{
+    std::string result;
+    for (size_t i = 0; i < uri.size(); i++)
+    {
+        if (uri[i] == '%' && i + 2  < uri.size())
+        {
+            if (isxdigit(uri[i + 1]) && isxdigit(uri[i + 2]))
+            {
+                std::string str = uri.substr(i + 1, 2);
+                int number = stringToInt(str, 16);
+                char c = static_cast<char>(number);
+                result += c;
+                i += 2;
+                continue ;
+            }
+        }
+        result += uri[i];
+    }
+    return result;
+}
+
+std::string Request::normalizePath(const std::string& path)
+{
+    std::stringstream stearm(path);
+    std::string segment;
+    std::vector<std::string> segments;
+    std::string result;
+
+    while (std::getline(stearm, segment, '/'))
+    {
+        if (segment.empty() || segment == ".")
+            continue;
+        if (segment == "..")
+        {
+            if (!segments.empty())
+                segments.pop_back();
+            continue;
+        }
+        segments.push_back(segment);
+    }
+    if (segments.empty())
+        return "/";
+    for (size_t i = 0; i < segments.size(); i++)
+    {
+        result += "/";
+        result += segments.at(i);
+    }
+    if (path.at(path.length() - 1) == '/')
+        result += "/";
+    return result;
+}
+
+bool Request::parseUri(const std::string& uri)
+{
+    // std::cout << "Uri: " << uri << std::endl;
+    if (uri.empty() || uri[0] != '/')
+        return false;
+    std::string decode = decodeUri(uri);
+    std::cout << "Decoded uri: " << decode << std::endl;
+
+    //TODO: split Uri into PATH and QUERIES
+    //splitUri(decode);
+
+    std::string normalized = normalizePath(decode);
+    std::cout << "Normalized: " << normalized << std::endl;
+    return true;
+}
+
+
 std::string trim(std::string str)
 {
     std::size_t start = str.find_first_not_of(" \t");
@@ -54,22 +134,35 @@ std::string trim(std::string str)
     return (str.substr(start, end - start + 1));
 }
 
-int stringToInt(const std::string& str)
+int stringToInt(const std::string& str, int base)
 {
     std::stringstream ss(str);
     int result;
-    ss >> result;
+    if (base == 16)
+        ss >> std::hex >> result;
+    else
+        ss >> result;
     return result;
 }
 
 void    Request::parseLine(const std::string& raw)
 {
+    // std::cout << raw << std::endl;
+    // exit(0);
     std::size_t pos = raw.find("\r\n");
     if (pos != std::string::npos)
     {
         std::string line = raw.substr(0, pos);
         std::stringstream str(line);
         str >> method >> uri >> protocol;
+        if (!parseMethod(method))
+            throw std::runtime_error("Bad request: Unsupported method");
+        if (!parseUri(uri))
+            throw std::runtime_error("Bad request: Invalid uri");
+        if (protocol.empty())
+            throw std::runtime_error("Bad request: protocol empty");
+        // if (protocol != "http/1.0")
+        //     throw std::runtime_error("Bad request: Unsupported HTTP version");
     }
     else
         throw std::runtime_error("Bad request");
@@ -79,7 +172,7 @@ void    Request::parseHeaders(const std::string& raw)
 {
     std::size_t pos = raw.find("\r\n\r\n");
     if (pos == std::string::npos)
-        throw std::runtime_error("Bad request");
+        throw std::runtime_error("Bad request: Missing end of header");
     pos = raw.find("\r\n");
     pos += 2;
     std::size_t currentPos = raw.find("\r\n", pos);
@@ -97,16 +190,15 @@ void    Request::parseHeaders(const std::string& raw)
                 headers[key] = value;
         }
         else
-            throw std::runtime_error("Bad request");
+            throw std::runtime_error("Bad request: Invalid header format");
         pos = currentPos + 2;
         currentPos = raw.find("\r\n", pos);
     }
 }
 
-void    Request::parseBody(const std::string& raw)
-{
-    
-}
+// void    Request::parseBody(const std::string& raw)
+// { 
+// }
 
 void    parsedRequest(Request req)
 {
@@ -128,8 +220,8 @@ void    parsedRequest(Request req)
         std::cout << it->first << "=  " << it->second << std::endl;
     }
 
-    std::cout << "\n=================Body=================" << std::endl;
-    std::cout << req.getBody() << std::endl;
+    // std::cout << "\n=================Body=================" << std::endl;
+    // std::cout << req.getBody() << std::endl;
 }
 
 
@@ -146,6 +238,6 @@ void    Request::parseRequest(const std::string& raw)
     parseHeaders(raw);
     
     //TODO: body
-    parseBody(raw);
+    // parseBody(raw);
 }
 
