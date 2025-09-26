@@ -17,6 +17,7 @@ class Request
         std::string path;
         std::string protocol;
         std::map<std::string, std::string> headers;
+        std::map<std::string, std::string> queries;
         std::string body;
     public:
         Request();
@@ -34,7 +35,10 @@ class Request
         bool    parseMethod(const std::string& method);
         bool    parseUri(const std::string& uri);
         std::string normalizePath(const std::string& path);
-        std::string decodeUri(const std::string& uri);
+        std::string decodeUri(const std::string& uri, bool isQuery);
+        std::string removeFragment(const std::string& uri);
+        void    splitUri(const std::string& str);
+        void    parseQuery(const std::string& query);
 };
 
 std::string trim(std::string str);

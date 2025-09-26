@@ -55,11 +55,16 @@ bool Request::parseMethod(const std::string& method)
     return false;
 }
 
-std::string Request::decodeUri(const std::string& uri)
+std::string Request::decodeUri(const std::string& uri, bool isQuery)
 {
     std::string result;
     for (size_t i = 0; i < uri.size(); i++)
     {
+        if (isQuery && uri[i] == '+')
+        {
+            result += ' ';
+            continue;
+        }
         if (uri[i] == '%' && i + 2  < uri.size())
         {
             if (isxdigit(uri[i + 1]) && isxdigit(uri[i + 2]))
@@ -108,19 +113,69 @@ std::string Request::normalizePath(const std::string& path)
     return result;
 }
 
+void    Request::parseQuery(const std::string& query)
+{
+    // std::cout << "Query: " << query << std::endl;
+    std::stringstream ss(query);
+    std::string str;
+    while (std::getline(ss, str, '&'))
+    {
+        if (!str.empty())
+        {
+            std::size_t pos = str.find("=");
+            if (pos != std::string::npos)
+            {
+                std::string name = str.substr(0, pos);
+                std::string value = str.substr(pos + 1);
+                queries[name] = value;
+            }
+            else
+            {
+                std::string name = str;
+                queries[name] = "";
+            }
+        }
+    }
+}
+
+void    Request::splitUri(const std::string& str)
+{
+    //TODO: parse queryString
+    std::size_t pos = str.find("?");
+    if (pos != std::string::npos)
+    {
+        path = decodeUri(str.substr(0, pos), false);
+        std::string queryString = decodeUri(str.substr(pos + 1), true);
+        parseQuery(queryString);
+    }
+    else
+        path = decodeUri(str, false);
+}
+
+std::string Request::removeFragment(const std::string& uri)
+{
+    std::size_t fragmentPos = uri.find("#");
+    if (fragmentPos != std::string::npos)
+    {
+        std::string str = uri.substr(0, fragmentPos);
+        return str;
+    }
+    return uri;
+}
+
 bool Request::parseUri(const std::string& uri)
 {
     // std::cout << "Uri: " << uri << std::endl;
     if (uri.empty() || uri[0] != '/')
         return false;
-    std::string decode = decodeUri(uri);
-    std::cout << "Decoded uri: " << decode << std::endl;
+    std::string str = removeFragment(uri);
 
     //TODO: split Uri into PATH and QUERIES
-    //splitUri(decode);
+    splitUri(str);
+    // std::cout << "Path: " << path << std::endl;
 
-    std::string normalized = normalizePath(decode);
-    std::cout << "Normalized: " << normalized << std::endl;
+    std::string normalized = normalizePath(path);
+    // std::cout << "Normalized: " << normalized << std::endl;
     return true;
 }
 
@@ -148,7 +203,6 @@ int stringToInt(const std::string& str, int base)
 void    Request::parseLine(const std::string& raw)
 {
     // std::cout << raw << std::endl;
-    // exit(0);
     std::size_t pos = raw.find("\r\n");
     if (pos != std::string::npos)
     {
