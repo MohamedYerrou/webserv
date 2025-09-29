@@ -1,4 +1,4 @@
-SRCS = main.cpp
+SRCS = main.cpp srcs/run_server.cpp srcs/Client.cpp srcs/Server.cpp srcs/Location.cpp
 
 OBJ =  $(SRCS:.cpp=.o)
 
@@ -11,7 +11,7 @@ NAME = webserv
 all : $(NAME)
 
 %.o : %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -Iincludes -c $< -o $@
 
 $(NAME) : $(OBJ)
 	$(CC) $(OBJ) -o $(NAME)
