@@ -1,4 +1,4 @@
-#include "Client.hpp"
+#include "../includes/Client.hpp"
 
 Client::Client(int fd)
     : fd(fd), endHeaders(false), reqComplete(false), hasBody(false), currentRequest(NULL)

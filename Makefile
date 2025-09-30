@@ -3,7 +3,12 @@ NAME = webserv
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
-SRC = main.cpp Client.cpp Request.cpp
+SRC = main.cpp \
+	srcs/Client.cpp \
+	srcs/Server.cpp \
+	srcs/Location.cpp \
+	srcs/run_server.cpp \
+	srcs/Request.cpp
 OBJ = $(SRC:.cpp=.o)
 
 all : $(NAME)
