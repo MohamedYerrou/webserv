@@ -7,6 +7,11 @@ server {
     error_page 500 /errors/500.html;
     error_page 200 /errors/200.html;
 
+    location / {
+        root /var/www/youtube;
+        index index1.html int.htm;
+    }
+
     location /upload {
         root /var/www/youtube/music;
         index html;

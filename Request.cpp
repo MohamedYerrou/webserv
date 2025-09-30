@@ -1,6 +1,7 @@
 #include "Request.hpp"
 
 Request::Request()
+    : uploadFile(-1)
 {
 }
 
@@ -13,9 +14,9 @@ const std::string& Request::getMethod() const
     return method;
 }
 
-const std::string& Request::getUri() const
+const std::string& Request::getPath() const
 {
-    return uri;
+    return path;
 }
 
 const std::string& Request::getProtocol() const
@@ -28,9 +29,9 @@ const std::map<std::string, std::string>& Request::getHeaders() const
     return headers;
 }
 
-const std::string& Request::getBody() const
+const std::map<std::string, std::string>& Request::getQueries() const
 {
-    return body;
+    return queries;
 }
 
 size_t  Request::getContentLength() const
@@ -169,13 +170,9 @@ bool Request::parseUri(const std::string& uri)
     if (uri.empty() || uri[0] != '/')
         return false;
     std::string str = removeFragment(uri);
-
-    //TODO: split Uri into PATH and QUERIES
     splitUri(str);
-    // std::cout << "Path: " << path << std::endl;
 
-    std::string normalized = normalizePath(path);
-    // std::cout << "Normalized: " << normalized << std::endl;
+    path = normalizePath(path);
     return true;
 }
 
@@ -250,10 +247,6 @@ void    Request::parseHeaders(const std::string& raw)
     }
 }
 
-// void    Request::parseBody(const std::string& raw)
-// { 
-// }
-
 void    parsedRequest(Request req)
 {
     std::cout << "========================================" << std::endl;
@@ -262,7 +255,7 @@ void    parsedRequest(Request req)
     std::cout << std::endl;
 
     std::cout << "Method: " << req.getMethod() << std::endl;
-    std::cout << "Uri: " << req.getUri() << std::endl;
+    std::cout << "Path: " << req.getPath() << std::endl;
     std::cout << "Protocol: " << req.getProtocol() << std::endl;
     std::cout << std::endl;
 
@@ -273,25 +266,28 @@ void    parsedRequest(Request req)
     {
         std::cout << it->first << "=  " << it->second << std::endl;
     }
-
-    // std::cout << "\n=================Body=================" << std::endl;
-    // std::cout << req.getBody() << std::endl;
 }
 
+void    Request::generateTmpFile()
+{
+    std::string tmpFile = "testFile";
+    uploadFile = open(tmpFile.c_str(), O_CREAT | O_RDWR, 0600);
+    if (uploadFile == -1)
+        throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
+    std::cout << "Temporary file has been created" << std::endl;
+}
 
+void    Request::appendBody(const char* buf, size_t length)
+{
+    std::cout << "body from request" << std::endl;
+    ssize_t count = write(uploadFile, buf, length);
+    if (count != (ssize_t)length)
+        throw std::runtime_error("Write error: " + std::string(strerror(errno)));
+}
 
 void    Request::parseRequest(const std::string& raw)
 {
-    // std::cout << "========================================" << std::endl;
-    // std::cout << "This from Request class: " << std::endl;
-    // std::cout << "========================================" << std::endl;
-
-    // std::cout << raw << std::endl;
- 
     parseLine(raw);
     parseHeaders(raw);
-    
-    //TODO: body
-    // parseBody(raw);
 }
 

@@ -13,8 +13,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "ConfigStructs.hpp"
-#include "MiniServer.hpp"
 #include "Request.hpp"
+#include "Client.hpp"
 
 void    inputRequest()
 {
@@ -221,11 +221,59 @@ void	init_server(std::vector<ServerConfig>&	servers, int epfd, std::vector<int>&
 	}
 }
 
+void	acceptConnection(int epfd, int fd, std::map<int, Client*>& clients)
+{
+	int client_fd = accept(fd, NULL, NULL);
+	if (client_fd == -1)
+		throw_exception("accept: ", strerror(errno));
+	fcntl(client_fd, F_SETFL, O_NONBLOCK);
+	clients[client_fd] = new Client(client_fd);
+	struct epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = client_fd;
+	if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev) == -1)
+		throw_exception("epoll_ctl: ", strerror(errno));
+}
+
+void	handleData(int epfd, int fd, std::map<int, Client*>& clients)
+{
+	char	buf[30];
+	Client* clientPtr = clients[fd];
+	ssize_t received = recv(clientPtr->getFD(), buf, sizeof(buf) - 1, 0);
+	if (received == -1)
+	{
+		std::cout << "Recv error: " << strerror(errno) << std::endl;
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		delete clientPtr;
+		clients.erase(fd);
+		close(fd);
+	}
+	else if (received == 0)
+	{
+		std::cout << "Connection closed" << std::endl;
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		delete clientPtr;
+		clients.erase(fd);
+		close(fd);
+	}
+	else
+	{
+		buf[received] = '\0';
+		clientPtr->appendData(buf, received);
+		//step6: if request complete
+		if (clientPtr->getReqComplete())
+		{
+			std::cout << "this will handle full request" << std::endl;
+			std::cout << "method: " << clientPtr->getRequest()->getMethod() << std::endl;
+			clientPtr->handleCompleteRequest();
+		}
+	}
+}
+
 void	run_server(int epfd, std::vector<int>& fd_vect)
 {
 	struct epoll_event events[64];
-	char	buf[1024];
-	std::string rawRequest;
+	std::map<int, Client*> clients;
 
 	while (true)
 	{
@@ -237,64 +285,9 @@ void	run_server(int epfd, std::vector<int>& fd_vect)
 		{
 			int fd = events[i].data.fd;
 			if (listening_fd(fd_vect, fd))
-			{
-				int client_fd = accept(fd, NULL, NULL);
-				if (client_fd == -1)
-					throw_exception("accept: ", strerror(errno));
-				fcntl(client_fd, F_SETFL, O_NONBLOCK);
-				struct epoll_event ev;
-				ev.events = EPOLLIN;
-				ev.data.fd = client_fd;
-				if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev) == -1)
-					throw_exception("epoll_ctl: ", strerror(errno));
-			}
+				acceptConnection(epfd, fd, clients);
 			else if (events[i].events & EPOLLIN)
-			{
-				ssize_t bytesRead;
-				bool	isRequestComplete = false;
-				while ((bytesRead = recv(fd, buf, sizeof(buf) - 1, 0)) > 0)
-				{
-					buf[bytesRead] = '\0';
-					rawRequest.append(buf);
-					std::size_t pos = rawRequest.find("\r\n\r\n");
-					if (pos != std::string::npos)
-					{
-						isRequestComplete = true;
-						std::string endOFHeaders = rawRequest.substr(0, pos + 4);
-						std::cout << "=====From here this output=====" << std::endl;
-						std::cout << endOFHeaders << std::endl;
-						close(fd);
-						break;
-					}
-				}
-				if (isRequestComplete)
-				{
-					std::cout << "Here must handle the request body" << std::endl;
-				}
-				if (bytesRead == -1)
-				{
-					if (errno != EAGAIN && errno != EWOULDBLOCK) //this is FORBIDDEN
-					{
-						perror("recv: ");
-						close(fd);
-						if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL) == -1)
-							throw_exception("epoll_ctl: ", strerror(errno));
-					}
-				}
-				else if (bytesRead == 0)
-				{
-					close(fd);
-					if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL) == -1)
-						throw_exception("epoll_ctl: ", strerror(errno));
-				}
-				try {
-					Request req;
-					req.parseRequest(rawRequest);
-				} catch (const std::exception& e)
-				{
-					std::cout << "Request: " << e.what() << std::endl;
-				}
-			}
+				handleData(epfd, fd, clients);
 		}
 	}
 }
