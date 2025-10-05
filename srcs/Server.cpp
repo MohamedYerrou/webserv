@@ -1,15 +1,17 @@
-#include "Server.hpp"
+#include "../includes/Server.hpp"
 #include <sys/socket.h>
-#include "Utils.hpp"
+#include "../includes/Utils.hpp"
 #include <iostream>
 #include <string.h>
 #include <sys/epoll.h>
 #include <arpa/inet.h>
 #include <cerrno>
+#include <utility>
 
 
-Server::Server(): client_max_body_size(1024)
+Server::Server()
 {
+	client_max_body_size = 1024;
 }
 
 Server::~Server()
@@ -26,7 +28,7 @@ void    Server::push_location(Location location)
     locations.push_back(location);
 }
 
-void    Server::init_server(int epfd, std::vector<int>& fd_vect)
+void    Server::init_server(int epfd, std::map<int, Server*>& server_fd)
 {
     for (size_t i = 0; i < listens.size(); i++)
 		{
@@ -38,7 +40,8 @@ void    Server::init_server(int epfd, std::vector<int>& fd_vect)
 			if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 				throw_exception("setsockopt: ", strerror(errno));
 
-			fd_vect.push_back(listen_fd);
+			// server_fd.push_back(listen_fd);
+			server_fd.insert(std::make_pair(listen_fd, this));
 
 			sockaddr_in addr;
 			addr.sin_family = AF_INET;

@@ -14,8 +14,8 @@ class MyException: public std::exception
         virtual ~MyException() _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW {};
 };
 
-void	run_server(int epfd, std::vector<int>& fd_vect);
-bool    listening_fd(std::vector<int>& vect, int fd);
+void	run_server(int epfd, std::map<int, Server*>& fd_vect);
+bool    listening_fd(std::map<int, Server*>& vect, int fd);
 void	throw_exception(std::string function, std::string err);
 void	setNonBlocking(int fd);
 

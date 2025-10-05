@@ -2,25 +2,36 @@
 #define CLIENT_HPP
 
 #include <string>
-#include <vector>
+#include <iostream>
+#include <unistd.h>
+#include "Request.hpp"
+#include "Server.hpp"
 
 class Client
 {
-public:
-    int			fd;
-    std::string	readBuffer;
-    std::string	writeBuffer;
-    bool		keepAlive;
-    bool		requestComplete;
-
-    Client();
-	Client(int fd);
-    ~Client();
-
-    std::string&	get_readBuffer();
-    std::string&	get_writeBuffer();
-    bool			get_keepAlive();
-    bool			get_requestComplete();
+	private:
+		int			fd;
+		std::string	headers;
+		size_t		bodySize;
+		bool		endHeaders;
+		bool		reqComplete;
+		bool		hasBody;
+		Request*	currentRequest;
+		Server*		currentServer;
+	public:
+		Client(int fd, Server* server);
+		~Client();
+		int 				getFD() const;
+		const std::string&	getHeaders() const;
+		bool				getEndHeaders() const;
+		bool				getReqComplete() const;
+		void				appendData(const char* buf, ssize_t length);
+		void				setBodySize(size_t size);
+		void				handleHeaders(const std::string& raw);
+		void				handleBody(const char* buf, ssize_t length);
+		Request*			getRequest() const;
+		void				handleCompleteRequest();
+		void				handlePost();
 };
 
 #endif

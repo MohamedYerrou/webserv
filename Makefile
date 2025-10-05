@@ -1,27 +1,27 @@
-SRCS = main.cpp srcs/run_server.cpp srcs/Client.cpp srcs/Server.cpp srcs/Location.cpp
-
-OBJ =  $(SRCS:.cpp=.o)
-
-CC = c++
-
-CFLAGS = -Wall -Wextra -Werror -std=c++98
-
 NAME = webserv
+
+CXX = c++
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+
+SRC = main.cpp \
+	srcs/Client.cpp \
+	srcs/Server.cpp \
+	srcs/Location.cpp \
+	srcs/run_server.cpp \
+	srcs/Request.cpp
+OBJ = $(SRC:.cpp=.o)
 
 all : $(NAME)
 
-%.o : %.cpp
-	$(CC) $(CFLAGS) -Iincludes -c $< -o $@
-
 $(NAME) : $(OBJ)
-	$(CC) $(OBJ) -o $(NAME)
+	${CXX} ${CXXFLAGS} ${OBJ} -o ${NAME}
 
 clean :
-	rm -f $(OBJ)
+	rm -rf $(OBJ)
 
 fclean : clean
-	rm -f $(NAME)
+	rm -rf $(NAME)
 
 re : fclean all
 
-.PHONY:  all clean fclean re
+.PHONY : all clean fclean re

@@ -13,9 +13,18 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "Server.hpp"
-#include "Client.hpp"
-#include "Utils.hpp"
+#include <map>
+#include "includes/Request.hpp"
+#include "includes/Location.hpp"
+#include "includes/Client.hpp"
+#include "includes/Server.hpp"
+#include "includes/Utils.hpp"
+
+void	setNonBlocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+		throw_exception("fcntl: ", strerror(errno));
+}
 
 void	tokenizer(std::vector<std::string>&	tokens)
 {
@@ -101,7 +110,11 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 		else if (tok == "root" && inLocation)
 			currLocation.set_root(tokens[++i]);
 		else if (tok == "index" && inLocation)
-			currLocation.set_index(tokens[++i]);
+		{
+			while (tokens[++i] != ";")
+				currLocation.push_index(tokens[i]);
+
+		}
 		else if (tok == "upload_store" && inLocation)
 			currLocation.set_upload_store(tokens[++i]);
 		else if (tok == "methods" && inLocation)
@@ -125,6 +138,11 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 			path = tokens[++i];
 			currLocation.set_redir(make_pair(status, path));
 		}
+		else if (tok == "autoindex")
+		{
+			if (tokens[++i] == "on")
+				currLocation.set_autoindex(true);
+		}
 		else if (tok == "}" && inServer && !inLocation)
 		{
 			config.push_back(currServer);
@@ -135,13 +153,17 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 	return config;
 }
 
-bool listening_fd(std::vector<int>& vect, int fd)
+bool listening_fd(std::map<int, Server*>& servers_fd, int fd)
 {
-	for (size_t i = 0; i < vect.size(); i++)
-	{
-		if (fd == vect[i])
-			return true;
-	}
+	std::map<int, Server*>::iterator it = servers_fd.find(fd);
+	if (it != servers_fd.end())
+		return true;
+	
+	// for (size_t i = 0; i < vect.size(); i++)
+	// {
+	// 	if (fd == vect[i])
+	// 		return true;
+	// }
 	return false;
 }
 
@@ -150,37 +172,26 @@ void	throw_exception(std::string function, std::string err)
 	throw MyException(function + err);
 }
 
-void	setNonBlocking(int fd) {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-		throw_exception("fcntl: ", strerror(errno));
-}
-
-void	init_servers(std::vector<Server>& servers, int epfd, std::vector<int>& fd_vect)
-{
-	for (size_t i = 0; i < servers.size(); i++)
-	{
-		servers[i].init_server(epfd, fd_vect);
-	}
-}
-
 int main()
 {
 	std::vector<std::string>	tokens;
-	std::vector<Server>	servers;
-	std::vector<int> fd_vect;
+	std::vector<Server>			servers;
+	std::map<int, Server*>		servers_fd;
 
 	try
 	{
 		tokenizer(tokens);
 		servers = parser(tokens);
 		int epfd = epoll_create(1);
-		init_servers(servers, epfd, fd_vect);
-		run_server(epfd, fd_vect);
+		for (size_t i = 0; i < servers.size(); ++i) {
+            servers[i].init_server(epfd, servers_fd);
+        }
+		run_server(epfd, servers_fd);
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
+		std::cout << "hhhh" << std::endl;
 		exit(1);
 	}
     return 0;
