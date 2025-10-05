@@ -1,32 +1,4 @@
 server {
-    listen 127.0.0.1:7979;
-    root /var/www/youtube;
-    index index1.html int.htm;
-    error_page 404 /errors/ss.html;
-    error_page 302 /errors/302.html;
-    error_page 500 /errors/500.html;
-    error_page 200 /errors/200.html;
-
-    location / {
-        root /var/www/youtube;
-        index index1.html int.htm;
-    }
-
-    location /upload {
-        root /var/www/youtube/music;
-        index html;
-        autoindex on;
-        methods GET POST DELETE;
-        return 301 google.com;
-    }
-
-    location /cgi-bin {
-        cgi .php /usr/bin/php-cgi;
-        cgi .py  /usr/bin/python3;
-    }
-}
-
-server {
     listen 127.0.0.1:8080;
     listen 127.0.0.3:4242;
     
@@ -65,5 +37,19 @@ server {
     location /cgi-bin {
         cgi .php /usr/bin/php-cgi;
         cgi .py  /usr/bin/python3;
+    }
+}
+
+server {
+    listen 19.684.32.42:3663;
+    root /var/www/facebook;
+    index index3.html;
+    error_page 302 /errors/302.html;
+    error_page 500 /errors/500.html;
+    error_page 200 /errors/200.html;
+
+    location /upload {
+        root /var/www/facebook/profile;
+        methods GET;
     }
 }
