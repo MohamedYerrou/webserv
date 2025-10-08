@@ -8,7 +8,9 @@ SRC = main.cpp \
 	srcs/Server.cpp \
 	srcs/Location.cpp \
 	srcs/run_server.cpp \
-	srcs/Request.cpp
+	srcs/Request.cpp \
+	srcs/Response.cpp \
+	srcs/Utils.cpp
 OBJ = $(SRC:.cpp=.o)
 
 all : $(NAME)

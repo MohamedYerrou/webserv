@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <cerrno>
+#include "Utils.hpp"
 
 class Request
 {
@@ -45,9 +46,5 @@ class Request
         void    appendBody(const char* buf, size_t length);
         void    generateTmpFile();
 };
-
-std::string trim(std::string str);
-int stringToInt(const std::string& str, int base = 10);
-void    parsedRequest(Request req);
 
 #endif

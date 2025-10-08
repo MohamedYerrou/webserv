@@ -5,6 +5,13 @@
 #include <iostream>
 #include <unistd.h>
 #include "Request.hpp"
+#include "Response.hpp"
+#include "Server.hpp"
+#include "Location.hpp"
+#include <sys/stat.h>
+#include "Utils.hpp"
+#include <algorithm>
+#include <fstream>
 
 class Client
 {
@@ -15,9 +22,12 @@ class Client
         bool    endHeaders;
         bool    reqComplete;
         bool    hasBody;
+        bool    requestError;
         Request* currentRequest;
+        Server* server;
+        Response currentResponse;
     public:
-        Client(int fd);
+        Client(int fd, Server* srv);
         ~Client();
         int getFD() const;
         const std::string& getHeaders() const;
@@ -29,6 +39,16 @@ class Client
         void    handleBody(const char* buf, ssize_t length);
         Request* getRequest() const;
         void    handleCompleteRequest();
+        const Response& getResponse() const;
+        bool    getRequestError() const;
+        
+        //handle methods
+        void    handleGET();
+        const Location*   findMathLocation(const std::string& url);
+        std::string    joinPath(const Location& location);
+        bool    allowedMethod(const Location& location, const std::string& method);
+        void    handleRedirection(const Location& location);
+        void    errorResponse(int code, std::string error);
 };
 
 #endif

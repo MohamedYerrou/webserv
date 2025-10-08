@@ -109,9 +109,18 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 		else if (tok == "root" && inLocation)
 			currLocation.set_root(tokens[++i]);
 		else if (tok == "index" && inLocation)
-			currLocation.set_index(tokens[++i]);
+		{
+			while (tokens[++i] != ";")
+				currLocation.push_index(tokens[i]);
+			// currLocation.set_index(tokens[++i]);
+		}
 		else if (tok == "upload_store" && inLocation)
 			currLocation.set_upload_store(tokens[++i]);
+		else if (tok == "autoindex" && inLocation)
+		{
+			if (tokens[++i] == "on")
+				currLocation.set_autoIndex(true);
+		}
 		else if (tok == "methods" && inLocation)
 		{
 			i++;
@@ -131,6 +140,7 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 			
 			status = atoi(tokens[++i].c_str());
 			path = tokens[++i];
+			currLocation.set_isRedirection(true);
 			currLocation.set_redir(make_pair(status, path));
 		}
 		else if (tok == "}" && inServer && !inLocation)
@@ -172,7 +182,7 @@ int main()
 		for (size_t i = 0; i < servers.size(); ++i) {
             servers[i].init_server(epfd, fd_vect);
         }
-		run_server(epfd, fd_vect);
+		run_server(epfd, fd_vect, servers);
 	}
 	catch(const std::exception& e)
 	{

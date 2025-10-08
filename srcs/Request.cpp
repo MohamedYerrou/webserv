@@ -176,27 +176,6 @@ bool Request::parseUri(const std::string& uri)
     return true;
 }
 
-
-std::string trim(std::string str)
-{
-    std::size_t start = str.find_first_not_of(" \t");
-    if (start == std::string::npos)
-        return "";
-    std::size_t end = str.find_last_not_of(" \t");
-    return (str.substr(start, end - start + 1));
-}
-
-int stringToInt(const std::string& str, int base)
-{
-    std::stringstream ss(str);
-    int result;
-    if (base == 16)
-        ss >> std::hex >> result;
-    else
-        ss >> result;
-    return result;
-}
-
 void    Request::parseLine(const std::string& raw)
 {
     // std::cout << raw << std::endl;
@@ -244,27 +223,6 @@ void    Request::parseHeaders(const std::string& raw)
             throw std::runtime_error("Bad request: Invalid header format");
         pos = currentPos + 2;
         currentPos = raw.find("\r\n", pos);
-    }
-}
-
-void    parsedRequest(Request req)
-{
-    std::cout << "========================================" << std::endl;
-    std::cout << "=============Parsed Request=============" << std::endl;
-    std::cout << "========================================" << std::endl;
-    std::cout << std::endl;
-
-    std::cout << "Method: " << req.getMethod() << std::endl;
-    std::cout << "Path: " << req.getPath() << std::endl;
-    std::cout << "Protocol: " << req.getProtocol() << std::endl;
-    std::cout << std::endl;
-
-    std::cout << "================Headers================" << std::endl;
-    std::map<std::string, std::string> headers = req.getHeaders();
-    std::map<std::string, std::string>::iterator it = headers.begin();
-    for (; it != headers.end(); it++)
-    {
-        std::cout << it->first << "=  " << it->second << std::endl;
     }
 }
 

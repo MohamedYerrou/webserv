@@ -16,6 +16,13 @@ Server::~Server()
 {
 }
 
+//getters
+
+const std::vector<Location>& Server::getLocations() const
+{
+	return locations;
+}
+
 void    Server::push_listen(std::pair<std::string, int> pair)
 {
     listens.push_back(pair);
@@ -24,6 +31,16 @@ void    Server::push_listen(std::pair<std::string, int> pair)
 void    Server::push_location(Location location)
 {
     locations.push_back(location);
+}
+
+bool    Server::haslistenFD(int fd)
+{
+	for (size_t i = 0; i < listens.size(); i++)
+	{
+		if (listening_fd[i] == fd)
+			return true;
+	}
+	return false;
 }
 
 void    Server::init_server(int epfd, std::vector<int>& fd_vect)
@@ -37,7 +54,8 @@ void    Server::init_server(int epfd, std::vector<int>& fd_vect)
 			int opt = 1;
 			if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 				throw_exception("setsockopt: ", strerror(errno));
-
+			
+			listening_fd.push_back(listen_fd);
 			fd_vect.push_back(listen_fd);
 
 			sockaddr_in addr;
@@ -63,4 +81,15 @@ void    Server::init_server(int epfd, std::vector<int>& fd_vect)
 			if (epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
 				throw_exception("epoll_ctl: ", strerror(errno));
 		}
+	// std::vector<Location> locations = getLocations();
+	// if (locations.empty())
+    // {
+    //     std::cout << "No locations found!" << std::endl;
+    //     return;
+    // }
+	// for (size_t i = 0; i < locations.size(); i++)
+	// {
+	// 	locations[i].printLocation();
+	// 	std::cout << "===========================" << std::endl;
+	// }
 }
