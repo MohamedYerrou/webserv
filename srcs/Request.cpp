@@ -1,12 +1,17 @@
 #include "../includes/Request.hpp"
 
 Request::Request()
-    : uploadFile(-1)
+    : uploadFile(-1), errorVersion(false)
 {
 }
 
 Request::~Request()
 {
+}
+
+bool Request::getErrorVersion()
+{
+    return errorVersion;
 }
 
 const std::string& Request::getMethod() const
@@ -186,13 +191,22 @@ void    Request::parseLine(const std::string& raw)
         std::stringstream str(line);
         str >> method >> uri >> protocol;
         if (!parseMethod(method))
+        {
+            // std::cout << "NNNNNNNNNNNNNNNNNNNNN" << std::endl;
             throw std::runtime_error("Bad request: Unsupported method");
+        }
         if (!parseUri(uri))
+        {
+            // std::cout << "NNNNNNNNNNNNNNNNNNNNN" << std::endl;
             throw std::runtime_error("Bad request: Invalid uri");
+        }
         if (protocol.empty())
             throw std::runtime_error("Bad request: protocol empty");
         // if (protocol != "http/1.0")
+        // {
+        //     errorVersion = true;
         //     throw std::runtime_error("Bad request: Unsupported HTTP version");
+        // }
     }
     else
         throw std::runtime_error("Bad request");

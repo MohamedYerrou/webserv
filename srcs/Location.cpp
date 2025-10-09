@@ -100,6 +100,11 @@ const std::pair<int, std::string> Location::getRedirection() const
     return _http_redirection;
 }
 
+const std::map<int, std::string>& Location::getErrors() const
+{
+    return _errors;
+}
+
 void    Location::printLocation() const
 {
     std::cout << "Total location" << std::endl;

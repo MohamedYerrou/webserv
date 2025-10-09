@@ -41,6 +41,7 @@ public:
     const std::pair<int, std::string> getRedirection() const;
     const std::vector<std::string>& getIndex() const;
     const std::vector<std::string>& getMethod() const;
+    const std::map<int, std::string>& getErrors() const;
     bool getAutoIndex() const;
     bool hasRedir() const;
     void    printLocation() const;

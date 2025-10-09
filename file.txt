@@ -1,21 +1,22 @@
 server {
     listen 127.0.0.1:7979;
-    root /var/www/youtube;
-    index index1.html int.htm;
-    error_page 404 /errors/ss.html;
-    error_page 302 /errors/302.html;
-    error_page 500 /errors/500.html;
-    error_page 200 /errors/200.html;
 
     location / {
-        root /home/torokaro/Desktop/webserv;
-        autoindex off;
+        root /home/toro/Desktop/webserv;
+        autoindex on;
         index index.html int.htm;
+        error_page 403 /errors/403.html;
+        error_page 404 /errors/ss.html;
+        error_page 301 /errors/301.html;
+        error_page 500 /errors/500.html;
+        error_page 505 /errors/505.html;
     }
 
     location /upload {
-        root /home/torokaro/Desktop/webserv;
+        root /home/toro/Desktop/webserv;
         return 301 google.com;
+        error_page 403 errors/403.html;
+        error_page 404 /errors/ss.html;
     }
 
     location /cgi-bin {

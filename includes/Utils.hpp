@@ -32,5 +32,6 @@ int stringToInt(const std::string& str, int base = 10);
 void    parsedRequest(Request req);
 bool    isFile(const std::string& path);
 bool    isDir(const std::string& path);
+std::string getMimeType(const std::string& path);
 
 #endif

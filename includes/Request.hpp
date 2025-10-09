@@ -24,9 +24,11 @@ class Request
         std::string protocol;
         std::map<std::string, std::string> headers;
         std::map<std::string, std::string> queries;
+        bool errorVersion;
     public:
         Request();
         ~Request();
+        bool getErrorVersion();
         const std::string& getMethod() const;
         const std::string& getPath() const;
         const std::string& getProtocol() const;

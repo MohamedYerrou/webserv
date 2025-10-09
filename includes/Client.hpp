@@ -12,6 +12,7 @@
 #include "Utils.hpp"
 #include <algorithm>
 #include <fstream>
+#include <dirent.h>
 
 class Client
 {
@@ -25,6 +26,7 @@ class Client
         bool    requestError;
         Request* currentRequest;
         Server* server;
+        const Location* location;
         Response currentResponse;
     public:
         Client(int fd, Server* srv);
@@ -44,11 +46,14 @@ class Client
         
         //handle methods
         void    handleGET();
-        const Location*   findMathLocation(const std::string& url);
-        std::string    joinPath(const Location& location);
-        bool    allowedMethod(const Location& location, const std::string& method);
-        void    handleRedirection(const Location& location);
-        void    errorResponse(int code, std::string error);
+        const Location*   findMathLocation(std::string url);
+        std::string    joinPath();
+        bool    allowedMethod(const std::string& method);
+        void    handleRedirection();
+        void    errorResponse(int code, const std::string& error);
+        void    handleDirectory(const std::string& path);
+        void    handleFile(const std::string& path);
+        void    listingDirectory(const std::string& path);
 };
 
 #endif
