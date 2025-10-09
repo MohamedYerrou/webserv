@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <cerrno>
+#include <stdio.h>
 
 class Request
 {

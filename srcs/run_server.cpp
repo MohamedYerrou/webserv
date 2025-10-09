@@ -61,8 +61,8 @@ void	handleClientFd(int epfd, int fd, std::map<int, Client*>& clients)
 		//step6: if request complete
 		if (clientPtr->getReqComplete())
 		{
-			std::cout << "this will handle full request" << std::endl;
-			std::cout << "method: " << clientPtr->getRequest()->getMethod() << std::endl;
+			// std::cout << "this will handle full request" << std::endl;
+			// std::cout << "method: " << clientPtr->getRequest()->getMethod() << std::endl;
 			clientPtr->handleCompleteRequest();
 			struct epoll_event ev;
 			ev.events = EPOLLOUT;
@@ -80,7 +80,6 @@ void	handleClientResponse(int fd, int epfd, Client* c)
 	(void) c;
 
 	std::string msg = "KKKKKKKKKKKKKKKLLLLLLLLLLLLLLLLL";
-	// std::cout << msg << std::endl;
 	char body_size[50];
 	std::string body = "<html><body><h1>Hello from Webserv!<br>" + msg + "</h1></body></html>";
 	sprintf(body_size, "%d", (int)body.size());

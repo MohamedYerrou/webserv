@@ -116,7 +116,7 @@ std::string Request::normalizePath(const std::string& path)
 
 void    Request::parseQuery(const std::string& query)
 {
-    // std::cout << "Query: " << query << std::endl;
+    std::cout << "Query: " << query << std::endl;
     std::stringstream ss(query);
     std::string str;
     while (std::getline(ss, str, '&'))
@@ -270,8 +270,19 @@ void    parsedRequest(Request req)
 
 void    Request::generateTmpFile()
 {
-    std::string tmpFile = "testFile";
-    uploadFile = open(tmpFile.c_str(), O_CREAT | O_RDWR, 0600);
+    char		fileNumber[15];
+    std::string fileName;
+
+    std::map<std::string, std::string>::iterator it = queries.find("filename");
+
+    if (it != queries.end())
+        fileName = it->second;
+    else
+    {
+        sprintf(fileNumber, "%ld", time(NULL));
+        fileName = "uploadFile" + std::string(fileNumber);
+    }
+    uploadFile = open(fileName.c_str(), O_CREAT | O_RDWR, 0600);
     if (uploadFile == -1)
         throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
     std::cout << "Temporary file has been created" << std::endl;
@@ -279,7 +290,7 @@ void    Request::generateTmpFile()
 
 void    Request::appendBody(const char* buf, size_t length)
 {
-    std::cout << "body from request" << std::endl;
+    // std::cout << "body from request" << std::endl;
     ssize_t count = write(uploadFile, buf, length);
     if (count != (ssize_t)length)
         throw std::runtime_error("Write error: " + std::string(strerror(errno)));

@@ -32,6 +32,7 @@ class Client
 		Request*			getRequest() const;
 		void				handleCompleteRequest();
 		void				handlePost();
+		void    			handleTextPlain();
 };
 
 #endif

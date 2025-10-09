@@ -12,17 +12,17 @@ server {
         index index1.html int.htm;
     }
 
-    location /upload {
-        root /var/www/youtube/music;
-        index html;
-        autoindex on;
-        methods GET POST DELETE;
+    locati       methods GET POST DELETE;
         return 301 google.com;
     }
 
     location /cgi-bin {
         cgi .php /usr/bin/php-cgi;
-        cgi .py  /usr/bin/python3;
+        cgi .pyon /upload {
+        root /var/www/youtube/music;
+        index html;
+        autoindex on;
+   /usr/bin/python3;
     }
 }
 

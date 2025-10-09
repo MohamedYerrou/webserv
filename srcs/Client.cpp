@@ -44,42 +44,35 @@ Request* Client::getRequest() const
     return currentRequest;
 }
 
+void    Client::handlePost()
+{
+    std::string		Content_type = (currentRequest->getHeaders())["Content-Type"];
+    std::fstream	body("testfile", std::ios::in);
+    std::string		line;
 
+    if (Content_type == "text/plain")
+        return ;
+    else if (Content_type == "multipart/form-data")
+        return ;
+    else if (Content_type == "application/x-www-form-urlencoded")
+        return ;
+}
 
-// void    Client::handlePost()
-// {
-//     std::string		Content_type = (currentRequest->getHeaders())["Content-Type"];
-//     std::fstream	body("testfile", std::ios::in);
-//     std::string		line;
-
-//     if (Content_type == "application/x-www-form-urlencoded")
-//     {
-//         while (std::getline(body, line, '&'))
-// 		{
-// 			line
-// 		}
-//         return ;
-//     }
-//     else if (Content_type == "multipart/form-data")
-//         return ;
-//     else if (Content_type == "text/plain")
-// }
-
-// void    Client::handleCompleteRequest()
-// {
-//     if (currentRequest->getMethod() == "GET")
-//     {
-//         //TODO: handle get method
-//     }
-//     else if (currentRequest->getMethod() == "DELETE")
-//     {
-//         //TODO: handle delete mothod
-//     }
-//     else
-//     {
-//         //TODO: handle post method
-//     }
-// }
+void    Client::handleCompleteRequest()
+{
+    if (currentRequest->getMethod() == "GET")
+    {
+        //TODO: handle get method
+    }
+    else if (currentRequest->getMethod() == "DELETE")
+    {
+        //TODO: handle delete mothod
+    }
+    else
+    {
+        //TODO: handle post method
+    }
+}
 
 void    Client::handleHeaders(const std::string& raw)
 {
@@ -91,7 +84,10 @@ void    Client::handleHeaders(const std::string& raw)
         currentRequest->parseRequest(raw);
         bodySize = currentRequest->getContentLength();
         if (bodySize > 0)
+        {
             hasBody = true;
+            std::cout << "rrgrgrgrgrg\n";
+        }
         else
             reqComplete = true;
     } catch (const std::exception& e)
@@ -107,7 +103,7 @@ void    Client::handleBody(const char* buf, ssize_t length)
     bodySize -= toAppend;
     if (bodySize <= 0)
     {
-        std::cout << "Body complete" << std::endl;
+        // std::cout << "Body complete" << std::endl;
         reqComplete = true;
     }
 }
@@ -116,7 +112,7 @@ void    Client::appendData(const char* buf, ssize_t length)
 {
     if (!endHeaders)
     {
-        std::cout << "Buf: " << buf << std::endl;
+        // std::cout << "Buf: " << buf << std::endl;
         headers.append(buf, length);
         std::size_t headerPos = headers.find("\r\n\r\n");
         if (headerPos != std::string::npos)
