@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Welcome to Webserv 🌐</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      margin: 0;
+      padding: 0;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      padding: 60px 20px 40px;
+    }
+    header h1 {
+      font-size: 3em;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+    header p {
+      color: #cfd9f2;
+      font-size: 1.2em;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      background: rgba(255,255,255,0.2);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      color: #ffda79;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      margin-top: 20px;
+      gap: 10px;
+    }
+
+    input, button {
+      border: none;
+      border-radius: 6px;
+      padding: 10px 15px;
+      font-size: 1em;
+    }
+
+    input {
+      background: rgba(255,255,255,0.9);
+      color: #222;
+    }
+
+    button {
+      background: #ffda79;
+      color: #222;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #ffd44d;
+    }
+
+    footer {
+      margin-top: auto;
+      padding: 20px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #ddd;
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 1s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="fade-in">
+    <h1>🌐 Welcome to Your Webserv</h1>
+    <p>
+      This elegant page is served entirely by your C++ web server.  
+      Try exploring GET and POST requests below — all powered by your backend.
+    </p>
+  </header>
+
+  <div class="cards">
+    <div class="card fade-in" style="animation-delay: 0.2s;">
+      <h2>📂 Static File</h2>
+      <p>Click below to test static file delivery from the <code>www</code> folder.</p>
+      <p><a href="/file.txt" style="color:#ffda79;">→ Open file.txt</a></p>
+    </div>
+
+    <div class="card fade-in" style="animation-delay: 0.4s;">
+      <h2>⚙️ CGI Script (GET)</h2>
+      <p>Try running your CGI handler via a simple GET request.</p>
+      <p><a href="/cgi-bin/test.py?name=Webserv" style="color:#ffda79;">→ Run CGI GET</a></p>
+    </div>
+
+    <div class="card fade-in" style="animation-delay: 0.6s;">
+      <h2>🧮 CGI Script (POST)</h2>
+      <p>Submit two numbers and let your CGI script do the math!</p>
+      <form method="POST" action="/cgi-bin/test.py">
+        <input type="text" name="x" placeholder="Enter X" required />
+        <input type="text" name="y" placeholder="Enter Y" required />
+        <button type="submit">Calculate</button>
+      </form>
+    </div>
+  </div>
+
+  <footer>
+    © 2025 Webserv Project — <em>Powered by C++ &amp; epoll</em>
+  </footer>
+</body>
+</html>
