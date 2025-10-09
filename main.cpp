@@ -19,6 +19,7 @@
 #include "includes/Client.hpp"
 #include "includes/Server.hpp"
 #include "includes/Utils.hpp"
+#include <cstdio>
 
 void	setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
@@ -113,7 +114,6 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 		{
 			while (tokens[++i] != ";")
 				currLocation.push_index(tokens[i]);
-
 		}
 		else if (tok == "upload_store" && inLocation)
 			currLocation.set_upload_store(tokens[++i]);
@@ -137,11 +137,12 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 			status = atoi(tokens[++i].c_str());
 			path = tokens[++i];
 			currLocation.set_redir(make_pair(status, path));
+			currLocation.set_isRedirection(true);
 		}
 		else if (tok == "autoindex")
 		{
 			if (tokens[++i] == "on")
-				currLocation.set_autoindex(true);
+				currLocation.set_autoIndex(true);
 		}
 		else if (tok == "}" && inServer && !inLocation)
 		{
@@ -158,12 +159,6 @@ bool listening_fd(std::map<int, Server*>& servers_fd, int fd)
 	std::map<int, Server*>::iterator it = servers_fd.find(fd);
 	if (it != servers_fd.end())
 		return true;
-	
-	// for (size_t i = 0; i < vect.size(); i++)
-	// {
-	// 	if (fd == vect[i])
-	// 		return true;
-	// }
 	return false;
 }
 
@@ -191,8 +186,9 @@ int main()
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
-		std::cout << "hhhh" << std::endl;
+		// std::cout << "hhhh" << std::endl;
 		exit(1);
 	}
     return 0;
 }
+

@@ -1,13 +1,9 @@
 #include "../includes/Client.hpp"
-#include "../includes/Server.hpp"
-#include <fstream>
-#include <bits/stdc++.h>
 
-Client::Client(int fd, Server* server)
-    : fd(fd), endHeaders(false), reqComplete(false), hasBody(false), currentRequest(NULL)
+Client::Client(int fd, Server* srv)
+    : fd(fd), endHeaders(false), reqComplete(false), hasBody(false), requestError(false), currentRequest(NULL), currentServer(srv), location(NULL)
 {
     bodySize = 0;
-    currentServer = server;
 }
 
 Client::~Client()
@@ -34,6 +30,11 @@ bool    Client::getReqComplete() const
     return reqComplete;
 }
 
+bool    Client::getRequestError() const
+{
+    return requestError;
+}
+
 void    Client::setBodySize(size_t size)
 {
     bodySize = size;
@@ -44,25 +45,226 @@ Request* Client::getRequest() const
     return currentRequest;
 }
 
-void    Client::handlePost()
+const Response& Client::getResponse() const
 {
-    std::string		Content_type = (currentRequest->getHeaders())["Content-Type"];
-    std::fstream	body("testfile", std::ios::in);
-    std::string		line;
-
-    if (Content_type == "text/plain")
-        return ;
-    else if (Content_type == "multipart/form-data")
-        return ;
-    else if (Content_type == "application/x-www-form-urlencoded")
-        return ;
+    return currentResponse;
 }
+
+const Location*   Client::findMathLocation(std::string url)
+{
+    if (url[0] != '/')
+        url.insert(0, "/");
+    const std::vector<Location>& locations = currentServer->getLocations();
+    if (locations.empty())
+        return NULL;
+
+    const Location* currentLocation = NULL;
+    std::size_t prefix = 0;
+	for (size_t i = 0; i < locations.size(); i++)
+	{
+        std::string locationPath = locations[i].getPATH();
+        if (url == locationPath)
+            return &locations[i];
+        else
+        {
+            if (url.substr(0, locationPath.length()) == locationPath)
+            {
+                if (prefix < locationPath.length())
+                {
+                    prefix = locationPath.length();
+                    currentLocation = &locations[i];
+                }
+            }
+        }
+	}
+    return currentLocation;
+}
+
+std::string    Client::joinPath()
+{
+    std::string updatePath = currentRequest->getPath();
+    std::string root = location->getRoot();
+    if (root[root.length() - 1] == '/')
+        root.erase(root.length() - 1);
+    if (location->getPATH() != "/")
+    {
+        if (updatePath.find(location->getPATH()) == 0)
+        {
+            updatePath = updatePath.substr(location->getPATH().length());
+        }
+    }
+    std::string Total = root + updatePath;
+    return Total;
+}
+
+bool    Client::allowedMethod(const std::string& method)
+{
+    std::vector<std::string> methods = location->getMethod();
+    if (methods.empty())
+        return false;
+    std::vector<std::string>::iterator it;
+    it = std::find(methods.begin(), methods.end(), method);
+    if (it == methods.end())
+        return false;
+    return true;
+}
+
+void    Client::handleRedirection()
+{
+    std::pair<int, std::string> redir = location->getRedirection();
+    std::string TextStatus = getStatusText(redir.first);
+    std::string fullUrl = redir.second;
+    if (fullUrl.find("http://") != 0 && fullUrl.find("https://") != 0)
+        fullUrl.insert(0, "http://");
+
+    std::stringstream body;
+    body << "<!DOCTYPE HTML>"
+        << "<html><head><title>" << redir.first << " " << TextStatus << "</title></head>"
+        << "<body><h1>" << TextStatus << "</h1>"
+        << "<p>Redirecting to: <a target=\"_blank\" href=\"" << fullUrl << "\">" << fullUrl << "</a></p>"
+        << "</body></html>";
+    
+    std::string bodyStr = body.str();
+    currentResponse = Response();
+    currentResponse.setProtocol(currentRequest->getProtocol());
+    currentResponse.setStatus(redir.first, TextStatus);
+    currentResponse.setHeaders("Location", fullUrl);
+    currentResponse.setHeaders("Content-Type", "text/html");
+    currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
+    currentResponse.setHeaders("Date", currentDate());
+    currentResponse.setHeaders("Connection", "close");
+    currentResponse.setBody(bodyStr);
+}
+
+void    Client::handleFile(const std::string& path)
+{
+    std::ifstream file(path.c_str(), std::ios::binary);
+    if (file.is_open())
+    {
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        std::string bodyStr = buffer.str();
+        currentResponse = Response();
+        currentResponse.setProtocol(currentRequest->getProtocol());
+        currentResponse.setStatus(200, "OK");
+        currentResponse.setBody(bodyStr);
+        currentResponse.setHeaders("Content-Type", getMimeType(path));
+        currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
+        currentResponse.setHeaders("Date", currentDate());
+        currentResponse.setHeaders("Connection", "close");
+    }
+    else
+    {
+        errorResponse(500, strerror(errno));
+    }
+    file.close();
+}
+
+void    Client::listingDirectory(std::string path)
+{
+    DIR* dirStream = opendir(path.c_str());
+    if (!dirStream)
+    {
+        errorResponse(500, "Could not open this directory");
+    }
+    std::string buffer;
+    buffer +=  "<!DOCTYPE html><html><head><title>Listing directory: "
+        + path + "</title></head><body><h1> Listing directory: " + path + "</h1><ul>";
+    struct dirent* entry;
+    while ((entry = readdir(dirStream)) != NULL)
+    {
+        std::string url = currentRequest->getPath();
+        if (url[url.length() - 1] != '/')
+            url += '/';
+        std::string fullPath = url + entry->d_name;
+        buffer += "<li><a href=\"" + fullPath + "\">";
+        buffer += entry->d_name;
+        buffer += "</a></li>";
+    }
+    buffer += "</ul></body></html>";
+    closedir(dirStream);
+    currentResponse = Response();
+    currentResponse.setProtocol(currentRequest->getProtocol());
+    currentResponse.setStatus(200, "ok");
+    currentResponse.setBody(buffer);
+    currentResponse.setHeaders("Content-Type", "text/html");
+    currentResponse.setHeaders("Content-Length", intTostring(buffer.length()));
+    currentResponse.setHeaders("Date", currentDate());
+    currentResponse.setHeaders("Connection", "close");
+}
+
+void    Client::handleDirectory(const std::string& path)
+{
+    std::string indexPath = path;
+    if (indexPath[indexPath.length() - 1] != '/')
+        indexPath += '/';
+    std::vector<std::string> index = location->getIndex();
+    std::vector<std::string>::iterator it;
+    bool    foundFile = false;
+    for (it = index.begin(); it != index.end(); it++)
+    {
+        indexPath += *it;
+        if (isFile(indexPath))
+        {
+            handleFile(indexPath);
+            foundFile = true;
+            break;
+        }
+    }
+    if (!foundFile && location->getAutoIndex())
+        listingDirectory(path);
+    else if (!foundFile)
+        errorResponse(403, "Forbiden serving this directory");
+}
+
+
+void    Client::handleGET()
+{
+    location = findMathLocation(currentRequest->getPath());
+    if (location)
+    {
+        if (location->hasRedir())
+        {
+            handleRedirection();
+            return;
+        }
+        if (location->getRoot().empty())
+        {
+            errorResponse(500, "Missing root directive");
+            return;
+        }
+        std::string totalPath = joinPath();
+        if (isDir(totalPath))
+        {
+            handleDirectory(totalPath);
+        }
+        if (isFile(totalPath))
+        {
+            handleFile(totalPath);
+        }
+    }
+}
+
+// void    Client::handlePost()
+// {
+//     std::string		Content_type = (currentRequest->getHeaders())["Content-Type"];
+//     std::fstream	body("testfile", std::ios::in);
+//     std::string		line;
+
+//     if (Content_type == "text/plain")
+//         return ;
+//     else if (Content_type == "multipart/form-data")
+//         return ;
+//     else if (Content_type == "application/x-www-form-urlencoded")
+//         return ;
+// }
 
 void    Client::handleCompleteRequest()
 {
     if (currentRequest->getMethod() == "GET")
     {
         //TODO: handle get method
+        handleGET();
     }
     else if (currentRequest->getMethod() == "DELETE")
     {
@@ -74,6 +276,59 @@ void    Client::handleCompleteRequest()
     }
 }
 
+void    Client::errorResponse(int code, const std::string& error)
+{
+    if (!location)
+        location = findMathLocation(currentRequest->getPath());
+    std::map<int, std::string> errors = location->getErrors();
+    std::map<int, std::string>::iterator it = errors.find(code);
+    if (it != errors.end() && !it->second.empty())
+    {
+        std::string errorPage = it->second;
+        std::string path = location->getRoot();
+        if (path[path.length() - 1] == '/')
+            path.erase(path.length() - 1);
+        if (errorPage[0] != '/')
+            errorPage.insert(0, "/");
+        path += errorPage;
+        if (isFile(path))
+        {
+            std::ifstream file((path).c_str(), std::ios::binary);
+            if (file.is_open())
+            {
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                std::string body = buffer.str();
+                currentResponse = Response();
+                currentResponse.setProtocol("HTTP/1.0");
+                currentResponse.setStatus(code, getStatusText(code));
+                currentResponse.setHeaders("Content-Type", getMimeType(path));
+                currentResponse.setHeaders("Content-Length", intTostring(body.length()));
+                currentResponse.setHeaders("Date", currentDate());
+                currentResponse.setHeaders("Connection", "close");
+                currentResponse.setBody(body);
+                return;
+            }
+        }
+    }
+    std::stringstream body;
+    body << "<!DOCTYPE HTML>"
+        << "<html><head><title>"<< code << " " << getStatusText(code) << "</title></head>"
+        << "<body><h1>"<< code << " " << getStatusText(code) << "</h1>"
+        << "<p>" << error << "</p>"
+        << "</body></html>";
+
+    std::string bodyStr = body.str();
+    currentResponse = Response();
+    currentResponse.setProtocol("HTTP/1.0");
+    currentResponse.setStatus(code, getStatusText(code));
+    currentResponse.setHeaders("Content-Type", "text/html");
+    currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
+    currentResponse.setHeaders("Date", currentDate());
+    currentResponse.setHeaders("Connection", "close");
+    currentResponse.setBody(bodyStr);
+}
+
 void    Client::handleHeaders(const std::string& raw)
 {
     std::cout << "Header request" << std::endl;
@@ -82,17 +337,28 @@ void    Client::handleHeaders(const std::string& raw)
     {
         currentRequest = new Request();
         currentRequest->parseRequest(raw);
+        // parsedRequest(*currentRequest);
         bodySize = currentRequest->getContentLength();
-        if (bodySize > 0)
-        {
+        if (bodySize > 0 && currentRequest->getMethod() == "POST")
             hasBody = true;
-            std::cout << "rrgrgrgrgrg\n";
-        }
         else
             reqComplete = true;
     } catch (const std::exception& e)
     {
-        std::cout << "Request error: " << e.what() << std::endl;
+        reqComplete = true;
+        requestError = true;
+        if (currentRequest->getErrorVersion())
+        {
+            std::cout << "LLLLLLLLLLLLLLLLLLLLLLLLLLLLL" << std::endl;
+            errorResponse(505, e.what());
+            return;
+        }
+        else
+        {
+            std::cout << "HERRRRRRRR" << std::endl;
+            errorResponse(400, e.what());
+        }
+        // std::cout << "Request error: " << e.what() << std::endl;
     }
 }
 
@@ -102,17 +368,15 @@ void    Client::handleBody(const char* buf, ssize_t length)
     currentRequest->appendBody(buf, toAppend);
     bodySize -= toAppend;
     if (bodySize <= 0)
-    {
-        // std::cout << "Body complete" << std::endl;
         reqComplete = true;
-    }
 }
+
 
 void    Client::appendData(const char* buf, ssize_t length)
 {
     if (!endHeaders)
     {
-        // std::cout << "Buf: " << buf << std::endl;
+        std::cout << "Buf: " << buf << std::endl;
         headers.append(buf, length);
         std::size_t headerPos = headers.find("\r\n\r\n");
         if (headerPos != std::string::npos)
@@ -120,6 +384,7 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
+            std::cout << "GGGGGGGGGGGGGGGGGG" << std::endl;
             size_t bodyInHeader = headers.length() - headerPos;
             if (hasBody && bodyInHeader > 0)
             {
@@ -135,3 +400,4 @@ void    Client::appendData(const char* buf, ssize_t length)
             handleBody(buf, length);
     }
 }
+

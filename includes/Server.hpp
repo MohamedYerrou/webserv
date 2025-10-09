@@ -21,6 +21,7 @@ class Server
     void    push_listen(std::pair<std::string, int>);
     void    push_location(Location);
     void    init_server(int epfd, std::map<int, Server*>& fd_vect);
+    const std::vector<Location>& getLocations() const;
 };
 
 #endif

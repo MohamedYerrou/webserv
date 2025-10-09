@@ -1,12 +1,17 @@
 #include "../includes/Request.hpp"
 
 Request::Request()
-    : uploadFile(-1)
+    : uploadFile(-1), errorVersion(false)
 {
 }
 
 Request::~Request()
 {
+}
+
+bool Request::getErrorVersion()
+{
+    return errorVersion;
 }
 
 const std::string& Request::getMethod() const
@@ -24,7 +29,7 @@ const std::string& Request::getProtocol() const
     return protocol;
 }
 
- std::map<std::string, std::string>& Request::getHeaders() 
+const std::map<std::string, std::string>& Request::getHeaders() const
 {
     return headers;
 }
@@ -116,7 +121,7 @@ std::string Request::normalizePath(const std::string& path)
 
 void    Request::parseQuery(const std::string& query)
 {
-    std::cout << "Query: " << query << std::endl;
+    // std::cout << "Query: " << query << std::endl;
     std::stringstream ss(query);
     std::string str;
     while (std::getline(ss, str, '&'))
@@ -176,27 +181,6 @@ bool Request::parseUri(const std::string& uri)
     return true;
 }
 
-
-std::string trim(std::string str)
-{
-    std::size_t start = str.find_first_not_of(" \t");
-    if (start == std::string::npos)
-        return "";
-    std::size_t end = str.find_last_not_of(" \t");
-    return (str.substr(start, end - start + 1));
-}
-
-int stringToInt(const std::string& str, int base)
-{
-    std::stringstream ss(str);
-    int result;
-    if (base == 16)
-        ss >> std::hex >> result;
-    else
-        ss >> result;
-    return result;
-}
-
 void    Request::parseLine(const std::string& raw)
 {
     // std::cout << raw << std::endl;
@@ -207,13 +191,22 @@ void    Request::parseLine(const std::string& raw)
         std::stringstream str(line);
         str >> method >> uri >> protocol;
         if (!parseMethod(method))
+        {
+            // std::cout << "NNNNNNNNNNNNNNNNNNNNN" << std::endl;
             throw std::runtime_error("Bad request: Unsupported method");
+        }
         if (!parseUri(uri))
+        {
+            // std::cout << "NNNNNNNNNNNNNNNNNNNNN" << std::endl;
             throw std::runtime_error("Bad request: Invalid uri");
+        }
         if (protocol.empty())
             throw std::runtime_error("Bad request: protocol empty");
         // if (protocol != "http/1.0")
+        // {
+        //     errorVersion = true;
         //     throw std::runtime_error("Bad request: Unsupported HTTP version");
+        // }
     }
     else
         throw std::runtime_error("Bad request");
@@ -247,27 +240,6 @@ void    Request::parseHeaders(const std::string& raw)
     }
 }
 
-void    parsedRequest(Request req)
-{
-    std::cout << "========================================" << std::endl;
-    std::cout << "=============Parsed Request=============" << std::endl;
-    std::cout << "========================================" << std::endl;
-    std::cout << std::endl;
-
-    std::cout << "Method: " << req.getMethod() << std::endl;
-    std::cout << "Path: " << req.getPath() << std::endl;
-    std::cout << "Protocol: " << req.getProtocol() << std::endl;
-    std::cout << std::endl;
-
-    std::cout << "================Headers================" << std::endl;
-    std::map<std::string, std::string> headers = req.getHeaders();
-    std::map<std::string, std::string>::iterator it = headers.begin();
-    for (; it != headers.end(); it++)
-    {
-        std::cout << it->first << "=  " << it->second << std::endl;
-    }
-}
-
 void    Request::generateTmpFile()
 {
     char		fileNumber[15];
@@ -290,7 +262,7 @@ void    Request::generateTmpFile()
 
 void    Request::appendBody(const char* buf, size_t length)
 {
-    // std::cout << "body from request" << std::endl;
+    std::cout << "body from request" << std::endl;
     ssize_t count = write(uploadFile, buf, length);
     if (count != (ssize_t)length)
         throw std::runtime_error("Write error: " + std::string(strerror(errno)));
@@ -301,4 +273,3 @@ void    Request::parseRequest(const std::string& raw)
     parseLine(raw);
     parseHeaders(raw);
 }
-

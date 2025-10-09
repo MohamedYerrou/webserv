@@ -17,7 +17,7 @@
 #include "../includes/Client.hpp"
 #include "../includes/Utils.hpp"
 
-void	handleListeningFd(int epfd, int fd, std::map<int, Client*>& clients, std::map<int, Server*>& servers_fd)
+void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, std::map<int, Server*>& servers_fd)
 {
 	int client_fd = accept(fd, NULL, NULL);
 	if (client_fd == -1)
@@ -32,7 +32,7 @@ void	handleListeningFd(int epfd, int fd, std::map<int, Client*>& clients, std::m
 	clients[client_fd] = new Client(client_fd, servers_fd.find(fd)->second);
 }
 
-void	handleClientFd(int epfd, int fd, std::map<int, Client*>& clients)
+void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 {
 	char	buf[30];
 	Client* clientPtr = clients[fd];
@@ -63,7 +63,8 @@ void	handleClientFd(int epfd, int fd, std::map<int, Client*>& clients)
 		{
 			// std::cout << "this will handle full request" << std::endl;
 			// std::cout << "method: " << clientPtr->getRequest()->getMethod() << std::endl;
-			clientPtr->handleCompleteRequest();
+			if (!clientPtr->getRequestError())
+				clientPtr->handleCompleteRequest();
 			struct epoll_event ev;
 			ev.events = EPOLLOUT;
 			ev.data.fd = fd;
@@ -134,11 +135,29 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 		{
 			int fd = events[i].data.fd;
 			if (listening_fd(servers_fd, fd))
-				handleListeningFd(epfd, fd, clients, servers_fd);
+				handleListeningClient(epfd, fd, clients, servers_fd);
 			else if (events[i].events & EPOLLIN)
-				handleClientFd(epfd, fd, clients);
+				handleClientRequest(epfd, fd, clients);
 			else if (events[i].events & EPOLLOUT)
-				handleClientResponse(fd, epfd, clients[fd]);
+			{
+				Response currentResponse = clients[fd]->getResponse();
+				std::string res = currentResponse.build();
+				ssize_t sent = send(fd, res.c_str(), res.length(), 0);
+				if ((std::size_t)sent == res.size())
+				{
+					std::cout << "Response has been sent" << std::endl;
+					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					clients.erase(fd);
+					close(fd);
+				}
+				if (sent == -1)
+				{
+					std::cout << "Sent Error: " << strerror(errno) << std::endl;
+					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					clients.erase(fd);
+					close(fd);
+				}
+			}
 		}
 	}
 }
