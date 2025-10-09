@@ -53,7 +53,7 @@ class Client
         void    errorResponse(int code, const std::string& error);
         void    handleDirectory(const std::string& path);
         void    handleFile(const std::string& path);
-        void    listingDirectory(const std::string& path);
+        void    listingDirectory(std::string path);
 };
 
 #endif

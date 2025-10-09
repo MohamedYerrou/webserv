@@ -128,7 +128,7 @@ void    Client::handleRedirection()
     currentResponse = Response();
     currentResponse.setProtocol(currentRequest->getProtocol());
     currentResponse.setStatus(redir.first, TextStatus);
-    // currentResponse.setHeaders("Location", fullUrl);
+    currentResponse.setHeaders("Location", fullUrl);
     currentResponse.setHeaders("Content-Type", "text/html");
     currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
     currentResponse.setHeaders("Date", currentDate());
@@ -160,9 +160,38 @@ void    Client::handleFile(const std::string& path)
     file.close();
 }
 
-// void    Client::listingDirectory(const std::string& path)
-// {
-// }
+void    Client::listingDirectory(std::string path)
+{
+    DIR* dirStream = opendir(path.c_str());
+    if (!dirStream)
+    {
+        errorResponse(500, "Could not open this directory");
+    }
+    std::string buffer;
+    buffer +=  "<!DOCTYPE html><html><head><title>Listing directory: "
+        + path + "</title></head><body><h1> Listing directory: " + path + "</h1><ul>";
+    struct dirent* entry;
+    while ((entry = readdir(dirStream)) != NULL)
+    {
+        std::string url = currentRequest->getPath();
+        if (url[url.length() - 1] != '/')
+            url += '/';
+        std::string fullPath = url + entry->d_name;
+        buffer += "<li><a href=\"" + fullPath + "\">";
+        buffer += entry->d_name;
+        buffer += "</a></li>";
+    }
+    buffer += "</ul></body></html>";
+    closedir(dirStream);
+    currentResponse = Response();
+    currentResponse.setProtocol(currentRequest->getProtocol());
+    currentResponse.setStatus(200, "ok");
+    currentResponse.setBody(buffer);
+    currentResponse.setHeaders("Content-Type", "text/html");
+    currentResponse.setHeaders("Content-Length", intTostring(buffer.length()));
+    currentResponse.setHeaders("Date", currentDate());
+    currentResponse.setHeaders("Connection", "close");
+}
 
 void    Client::handleDirectory(const std::string& path)
 {
@@ -183,14 +212,9 @@ void    Client::handleDirectory(const std::string& path)
         }
     }
     if (!foundFile && location->getAutoIndex())
-    {
-        //TODO:
-        // listingDirectory(path);
-    }
+        listingDirectory(path);
     else if (!foundFile)
-    {
         errorResponse(403, "Forbiden serving this directory");
-    }
 }
 
 
