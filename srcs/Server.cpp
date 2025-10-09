@@ -1,5 +1,7 @@
 #include "../includes/Server.hpp"
+#include "../includes/Server.hpp"
 #include <sys/socket.h>
+#include "../includes/Utils.hpp"
 #include "../includes/Utils.hpp"
 #include <iostream>
 #include <string.h>
@@ -7,10 +9,11 @@
 #include <arpa/inet.h>
 #include <cerrno>
 #include <utility>
-
+#include <utility>
 
 Server::Server()
 {
+	client_max_body_size = 1024;
 	client_max_body_size = 1024;
 }
 

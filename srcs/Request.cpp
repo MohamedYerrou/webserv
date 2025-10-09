@@ -71,6 +71,7 @@ std::string Request::decodeUri(const std::string& uri, bool isQuery)
             result += ' ';
             continue;
         }
+        
         if (uri[i] == '%' && i + 2  < uri.size())
         {
             if (isxdigit(uri[i + 1]) && isxdigit(uri[i + 2]))

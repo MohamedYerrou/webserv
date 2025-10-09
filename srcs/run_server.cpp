@@ -16,6 +16,9 @@
 #include "../includes/Server.hpp"
 #include "../includes/Client.hpp"
 #include "../includes/Utils.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/Utils.hpp"
 
 void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, std::map<int, Server*>& servers_fd)
 {
@@ -28,6 +31,8 @@ void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, st
 	ev.data.fd = client_fd;
 	if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev) == -1)
 		throw_exception("epoll_ctl: ", strerror(errno));
+
+	clients[client_fd] = new Client(client_fd, servers_fd.find(fd)->second);
 
 	clients[client_fd] = new Client(client_fd, servers_fd.find(fd)->second);
 }
@@ -44,10 +49,18 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete clientPtr;
 		clients.erase(fd);
+		std::cout << "Recv error: " << strerror(errno) << std::endl;
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		delete clientPtr;
+		clients.erase(fd);
 		close(fd);
 	}
 	else if (received == 0)
 	{
+		std::cout << "Connection closed" << std::endl;
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		delete clientPtr;
+		clients.erase(fd);
 		std::cout << "Connection closed" << std::endl;
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete clientPtr;
@@ -120,6 +133,7 @@ void	handleClientResponse(int fd, int epfd, Client* c)
 	// }
 }
 
+
 void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
 	struct epoll_event events[64];
@@ -130,6 +144,7 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 		int nfds = epoll_wait(epfd, events, 64, -1);
 		if (nfds == -1)
 			throw_exception("epoll_wait: ", strerror(errno));
+
 
 		for (int i = 0; i < nfds; i++)
 		{
