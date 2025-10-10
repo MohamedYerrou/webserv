@@ -46,6 +46,7 @@ class Client
         
         //handle methods
         void    handleGET();
+        void    handleDELETE();
         const Location*   findMathLocation(std::string url);
         std::string    joinPath();
         bool    allowedMethod(const std::string& method);

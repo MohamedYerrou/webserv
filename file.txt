@@ -2,14 +2,16 @@ server {
     listen 127.0.0.1:7979;
 
     location / {
-        root /home/toro/Desktop/webserv;
-        autoindex on;
+        root /home/torokaro/Desktop/webserv;
+        autoindex off;
         index index.html int.htm;
+        methods GET;
         error_page 403 /errors/403.html;
-        error_page 404 /errors/ss.html;
+        error_page 405 /errors/405.html;
         error_page 301 /errors/301.html;
         error_page 500 /errors/500.html;
         error_page 505 /errors/505.html;
+        return 301 google.com;
     }
 
     location /upload {

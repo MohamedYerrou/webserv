@@ -52,7 +52,7 @@ const Response& Client::getResponse() const
 
 const Location*   Client::findMathLocation(std::string url)
 {
-    if (url[0] != '/')
+    if (url[0] != '/') //this if got an error in parsing
         url.insert(0, "/");
     const std::vector<Location>& locations = server->getLocations();
     if (locations.empty())
@@ -223,6 +223,11 @@ void    Client::handleGET()
     location = findMathLocation(currentRequest->getPath());
     if (location)
     {
+        if (!allowedMethod("GET"))
+        {
+            errorResponse(405, "Method not allowed");
+            return;
+        }
         if (location->hasRedir())
         {
             handleRedirection();
@@ -245,6 +250,24 @@ void    Client::handleGET()
     }
 }
 
+void    Client::handleDELETE()
+{
+    location = findMathLocation(currentRequest->getPath());
+    if (location)
+    {
+        if (!allowedMethod("DELETE"))
+        {
+            errorResponse(405, "Method not allowed");
+            return;
+        }
+        if (location->getRoot().empty())
+        {
+            errorResponse(500, "Missing root directive");
+            return;
+        }
+    }
+}
+
 void    Client::handleCompleteRequest()
 {
     if (currentRequest->getMethod() == "GET")
@@ -255,6 +278,7 @@ void    Client::handleCompleteRequest()
     else if (currentRequest->getMethod() == "DELETE")
     {
         //TODO: handle delete mothod
+        handleDELETE();
     }
     else
     {
@@ -277,6 +301,7 @@ void    Client::errorResponse(int code, const std::string& error)
         if (errorPage[0] != '/')
             errorPage.insert(0, "/");
         path += errorPage;
+        std::cout << "PATH: " << path << std::endl;
         if (isFile(path))
         {
             std::ifstream file((path).c_str(), std::ios::binary);
