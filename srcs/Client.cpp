@@ -240,13 +240,11 @@ void    Client::handleGET()
         }
         std::string totalPath = joinPath();
         if (isDir(totalPath))
-        {
             handleDirectory(totalPath);
-        }
         if (isFile(totalPath))
-        {
             handleFile(totalPath);
-        }
+        else
+            errorResponse(404, "PAGE NOT FOUND");
     }
 }
 
