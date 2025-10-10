@@ -55,6 +55,34 @@ bool    isDir(const std::string& path)
     return S_ISDIR(fileStat.st_mode);
 }
 
+bool    allowedDelete(std::string path)
+{
+    std::size_t pos = path.find_last_of('/');
+    std::string parentDir = path.substr(0, pos);
+    if (access(parentDir.c_str(), W_OK | X_OK) != 0)
+        return false;
+    return true;
+}
+
+bool    isEmpty(const std::string& path)
+{
+    DIR* dirStram = opendir(path.c_str());
+    if (!dirStram)
+        return false;
+    struct dirent* entry;
+    bool empty = true;
+    while ((entry = readdir(dirStram)) != NULL)
+    {
+        if (std::string(entry->d_name) != "." && std::string(entry->d_name) != "..")
+        {
+            empty = false;
+            break;
+        }
+    }
+    closedir(dirStram);
+    return empty;
+}
+
 std::string getStatusText(int code)
 {
     std::string text;
@@ -86,6 +114,9 @@ std::string getStatusText(int code)
             break;
         case 408:
             text = "Request Timeout";
+            break;
+        case 409:
+            text = "Conflict";
             break;
         case 411:
             text = "Length Required";

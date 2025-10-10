@@ -6,6 +6,7 @@
 #include "Server.hpp"
 #include <sstream>
 #include <sys/stat.h>
+#include <dirent.h>
 
 class Request;
 
@@ -33,5 +34,7 @@ void    parsedRequest(Request req);
 bool    isFile(const std::string& path);
 bool    isDir(const std::string& path);
 std::string getMimeType(const std::string& path);
+bool    allowedDelete(std::string path);
+bool    isEmpty(const std::string& path);
 
 #endif

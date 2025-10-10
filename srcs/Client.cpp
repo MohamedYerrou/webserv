@@ -241,11 +241,49 @@ void    Client::handleGET()
         std::string totalPath = joinPath();
         if (isDir(totalPath))
             handleDirectory(totalPath);
-        if (isFile(totalPath))
+        else if (isFile(totalPath))
             handleFile(totalPath);
         else
-            errorResponse(404, "PAGE NOT FOUND");
+            errorResponse(404, "NOT FOUND");
     }
+}
+
+void    Client::handleDeleteFile(std::string totalPath)
+{
+    if (allowedDelete(totalPath))
+    {
+        if (std::remove(totalPath.c_str()) == 0)
+        {
+            currentResponse = Response();
+            currentResponse.setProtocol(currentRequest->getProtocol());
+            currentResponse.setStatus(204, getStatusText(204));
+            currentResponse.setHeaders("Date", currentDate());
+            currentResponse.setHeaders("Connection", "close");
+        }
+        else
+            errorResponse(500, "Internal Server Error");
+    }
+    else
+        errorResponse(403, "DELETE OPERATION FORBIDEN");
+}
+
+void    Client::handleDeleteDir(std::string totalPath)
+{
+    if (isEmpty(totalPath))
+    {
+        if (std::remove(totalPath.c_str()) == 0)
+        {
+            currentResponse = Response();
+            currentResponse.setProtocol(currentRequest->getProtocol());
+            currentResponse.setStatus(204, getStatusText(204));
+            currentResponse.setHeaders("Date", currentDate());
+            currentResponse.setHeaders("Connection", "close");
+        }
+        else
+            errorResponse(500, "Internal Server Error");
+    }
+    else
+        errorResponse(409, "Can not DELETE non empty directory");
 }
 
 void    Client::handleDELETE()
@@ -263,21 +301,22 @@ void    Client::handleDELETE()
             errorResponse(500, "Missing root directive");
             return;
         }
+        std::string totalPath = joinPath();
+        if (isDir(totalPath))
+            handleDeleteDir(totalPath);
+        else if (isFile(totalPath))
+            handleDeleteFile(totalPath);
+        else
+            errorResponse(404, "NOT FOUND");
     }
 }
 
 void    Client::handleCompleteRequest()
 {
     if (currentRequest->getMethod() == "GET")
-    {
-        //TODO: handle get method
         handleGET();
-    }
     else if (currentRequest->getMethod() == "DELETE")
-    {
-        //TODO: handle delete mothod
         handleDELETE();
-    }
     else
     {
         //TODO: handle post method
@@ -299,7 +338,6 @@ void    Client::errorResponse(int code, const std::string& error)
         if (errorPage[0] != '/')
             errorPage.insert(0, "/");
         path += errorPage;
-        std::cout << "PATH: " << path << std::endl;
         if (isFile(path))
         {
             std::ifstream file((path).c_str(), std::ios::binary);

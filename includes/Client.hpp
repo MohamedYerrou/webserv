@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <fstream>
 #include <dirent.h>
+#include <cstdio>
 
 class Client
 {
@@ -47,6 +48,8 @@ class Client
         //handle methods
         void    handleGET();
         void    handleDELETE();
+        void    handleDeleteFile(std::string totalPath);
+        void    handleDeleteDir(std::string totalPath);
         const Location*   findMathLocation(std::string url);
         std::string    joinPath();
         bool    allowedMethod(const std::string& method);
