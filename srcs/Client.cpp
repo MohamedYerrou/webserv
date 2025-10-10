@@ -371,6 +371,37 @@ void    Client::handleBody(const char* buf, ssize_t length)
         reqComplete = true;
 }
 
+const Location* Client::findBestMatch(const std::string uri)
+{
+    int index = -1;
+    const std::vector<Location>& locations = currentServer->getLocations();
+
+    for (size_t i = 0; i < locations.size(); i++)
+    {
+        std::string loc = locations[i].getPATH();
+
+        if (uri.compare(0, loc.length(), loc) == 0
+            && (uri.length() == loc.length() || uri[loc.length()] == '/' || loc == "/"))
+        {
+            if (index != -1 && locations[index].getPATH().length() <  locations[i].getPATH().length())
+                index = i;
+            else if (index == -1)
+                index = i;
+        }
+    }
+    if (index == -1)
+        return NULL;
+    return &locations[index];
+}
+
+std::string Client::constructFilePath(std::string uri)
+{
+    std::string path;
+    const Location*   loc = findBestMatch(uri);
+
+    path = loc->getUploadStore() + uri.erase(0, loc->getPATH().length());
+    return path;
+}
 
 void    Client::appendData(const char* buf, ssize_t length)
 {
@@ -384,11 +415,11 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
-            std::cout << "GGGGGGGGGGGGGGGGGG" << std::endl;
             size_t bodyInHeader = headers.length() - headerPos;
             if (hasBody && bodyInHeader > 0)
             {
-                currentRequest->generateTmpFile();
+                std::string target_path = constructFilePath(currentRequest->getPath());
+                currentRequest->generateTmpFile(target_path);
                 std::string bodyStart = headers.substr(headerPos);
                 handleBody(bodyStart.c_str(), bodyStart.length());
             }

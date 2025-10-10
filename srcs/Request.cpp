@@ -19,6 +19,11 @@ const std::string& Request::getMethod() const
     return method;
 }
 
+const std::string&  Request::getUri() const
+{
+    return uri;
+}
+
 const std::string& Request::getPath() const
 {
     return path;
@@ -241,7 +246,7 @@ void    Request::parseHeaders(const std::string& raw)
     }
 }
 
-void    Request::generateTmpFile()
+void    Request::generateTmpFile(const std::string& target_path)
 {
     char		fileNumber[15];
     std::string fileName;
@@ -249,11 +254,11 @@ void    Request::generateTmpFile()
     std::map<std::string, std::string>::iterator it = queries.find("filename");
 
     if (it != queries.end())
-        fileName = it->second;
+        fileName = target_path + "/" + it->second;
     else
     {
         sprintf(fileNumber, "%ld", time(NULL));
-        fileName = "uploadFile" + std::string(fileNumber);
+        fileName = target_path + "/uploadFile" + std::string(fileNumber);
     }
     uploadFile = open(fileName.c_str(), O_CREAT | O_RDWR, 0600);
     if (uploadFile == -1)
@@ -263,7 +268,7 @@ void    Request::generateTmpFile()
 
 void    Request::appendBody(const char* buf, size_t length)
 {
-    std::cout << "body from request" << std::endl;
+    // std::cout << "body from request" << std::endl;
     ssize_t count = write(uploadFile, buf, length);
     if (count != (ssize_t)length)
         throw std::runtime_error("Write error: " + std::string(strerror(errno)));

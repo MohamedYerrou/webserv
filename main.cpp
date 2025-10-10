@@ -27,9 +27,9 @@ void	setNonBlocking(int fd) {
 		throw_exception("fcntl: ", strerror(errno));
 }
 
-void	tokenizer(std::vector<std::string>&	tokens)
+void	tokenizer(std::vector<std::string>&	tokens, std::string configFile)
 {
-	std::fstream				file("file.txt");
+	std::fstream				file(configFile.c_str());
 	std::string					line;
 	std::string					word;
 	std::stringstream			ss;
@@ -167,7 +167,7 @@ void	throw_exception(std::string function, std::string err)
 	throw MyException(function + err);
 }
 
-int main()
+int main(int ac, char** av)
 {
 	std::vector<std::string>	tokens;
 	std::vector<Server>			servers;
@@ -175,7 +175,9 @@ int main()
 
 	try
 	{
-		tokenizer(tokens);
+
+
+		tokenizer(tokens, (ac != 2 ? "configFile1.txt" : av[1]));
 		servers = parser(tokens);
 		int epfd = epoll_create(1);
 		for (size_t i = 0; i < servers.size(); ++i) {
@@ -190,7 +192,6 @@ int main()
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
-		// std::cout << "hhhh" << std::endl;
 		exit(1);
 	}
     return 0;

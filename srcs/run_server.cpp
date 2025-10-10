@@ -33,8 +33,6 @@ void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, st
 		throw_exception("epoll_ctl: ", strerror(errno));
 
 	clients[client_fd] = new Client(client_fd, servers_fd.find(fd)->second);
-
-	clients[client_fd] = new Client(client_fd, servers_fd.find(fd)->second);
 }
 
 void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
@@ -49,18 +47,10 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete clientPtr;
 		clients.erase(fd);
-		std::cout << "Recv error: " << strerror(errno) << std::endl;
-		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-		delete clientPtr;
-		clients.erase(fd);
 		close(fd);
 	}
 	else if (received == 0)
 	{
-		std::cout << "Connection closed" << std::endl;
-		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-		delete clientPtr;
-		clients.erase(fd);
 		std::cout << "Connection closed" << std::endl;
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete clientPtr;
