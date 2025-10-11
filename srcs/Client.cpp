@@ -1,13 +1,20 @@
 #include "../includes/Client.hpp"
 
 Client::Client(int fd, Server* srv)
-    : fd(fd), endHeaders(false), reqComplete(false), hasBody(false), requestError(false), currentRequest(NULL), server(srv), location(NULL)
+    : fd(fd), endHeaders(false), reqComplete(false), hasBody(false), requestError(false), currentRequest(NULL), currentServer(srv), location(NULL)
 {
     bodySize = 0;
+    sentAll = false;
+	sentHeaders = false;
+	fileOpened = false;
 }
 
 Client::~Client()
 {
+    if (fileOpened)
+    {
+        fileStream.close();
+    }
 }
 
 int Client::getFD() const
@@ -45,16 +52,21 @@ Request* Client::getRequest() const
     return currentRequest;
 }
 
-const Response& Client::getResponse() const
+Response& Client::getResponse()
 {
     return currentResponse;
+}
+
+bool				Client::getSentAll() const
+{
+    return sentAll;
 }
 
 const Location*   Client::findMathLocation(std::string url)
 {
     if (url[0] != '/') //this if got an error in parsing
         url.insert(0, "/");
-    const std::vector<Location>& locations = server->getLocations();
+    const std::vector<Location>& locations = currentServer->getLocations();
     if (locations.empty())
         return NULL;
 
@@ -136,28 +148,43 @@ void    Client::handleRedirection()
     currentResponse.setBody(bodyStr);
 }
 
-void    Client::handleFile(const std::string& path)
+void    Client::PrepareResponse(const std::string& path)
 {
-    std::ifstream file(path.c_str(), std::ios::binary);
-    if (file.is_open())
+    if (!fileOpened)
     {
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        std::string bodyStr = buffer.str();
-        currentResponse = Response();
-        currentResponse.setProtocol(currentRequest->getProtocol());
-        currentResponse.setStatus(200, "OK");
-        currentResponse.setBody(bodyStr);
-        currentResponse.setHeaders("Content-Type", getMimeType(path));
-        currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
-        currentResponse.setHeaders("Date", currentDate());
-        currentResponse.setHeaders("Connection", "close");
+        fileStream.open(path.c_str(), std::ios::binary);
+        if (!fileStream.is_open())
+        {
+            errorResponse(500, strerror(errno));
+            sentAll = true;
+            return;
+        }
+        fileOpened = true;
     }
+    currentResponse = Response();
+    currentResponse.setProtocol(currentRequest->getProtocol());
+    currentResponse.setStatus(200, "OK");
+    currentResponse.setHeaders("Content-Type", getMimeType(path));
+    currentResponse.setHeaders("Content-Length", intTostring(getFileSize(path)));
+    currentResponse.setHeaders("Date", currentDate());
+    currentResponse.setHeaders("Connection", "close");
+}
+
+void    Client::handleFile()
+{
+    if (sentAll)
+        return;
+    char    buffer[1024];
+    fileStream.read(buffer, sizeof(buffer));
+    size_t bytesRead = fileStream.gcount();
+    if (bytesRead == 0)
+        sentAll = true;
     else
     {
-        errorResponse(500, strerror(errno));
+        currentResponse.setBody(std::string(buffer, bytesRead));
+        if (bytesRead < sizeof(buffer))
+            sentAll = true;
     }
-    file.close();
 }
 
 void    Client::listingDirectory(std::string path)
@@ -168,8 +195,8 @@ void    Client::listingDirectory(std::string path)
         errorResponse(500, "Could not open this directory");
     }
     std::string buffer;
-    buffer +=  "<!DOCTYPE html><html><head><title>Listing directory: "
-        + path + "</title></head><body><h1> Listing directory: " + path + "</h1><ul>";
+    buffer +=  "<!DOCTYPE html><html><head><title>Listing directory"
+        "</title></head><body><h1> Listing directory: " + path + "</h1><ul>";
     struct dirent* entry;
     while ((entry = readdir(dirStream)) != NULL)
     {
@@ -206,7 +233,7 @@ void    Client::handleDirectory(const std::string& path)
         indexPath += *it;
         if (isFile(indexPath))
         {
-            handleFile(indexPath);
+            PrepareResponse(indexPath);
             foundFile = true;
             break;
         }
@@ -242,7 +269,7 @@ void    Client::handleGET()
         if (isDir(totalPath))
             handleDirectory(totalPath);
         else if (isFile(totalPath))
-            handleFile(totalPath);
+            PrepareResponse(totalPath);
         else
             errorResponse(404, "NOT FOUND");
     }
@@ -310,6 +337,20 @@ void    Client::handleDELETE()
             errorResponse(404, "NOT FOUND");
     }
 }
+
+// void    Client::handlePost()
+// {
+//     std::string		Content_type = (currentRequest->getHeaders())["Content-Type"];
+//     std::fstream	body("testfile", std::ios::in);
+//     std::string		line;
+
+//     if (Content_type == "text/plain")
+//         return ;
+//     else if (Content_type == "multipart/form-data")
+//         return ;
+//     else if (Content_type == "application/x-www-form-urlencoded")
+//         return ;
+// }
 
 void    Client::handleCompleteRequest()
 {
@@ -395,10 +436,12 @@ void    Client::handleHeaders(const std::string& raw)
         reqComplete = true;
         requestError = true;
         if (currentRequest->getErrorVersion())
+        {
             errorResponse(505, e.what());
+            return;
+        }
         else
         {
-            std::cout << "HERRRRRRRR" << std::endl;
             errorResponse(400, e.what());
         }
         // std::cout << "Request error: " << e.what() << std::endl;
@@ -414,12 +457,42 @@ void    Client::handleBody(const char* buf, ssize_t length)
         reqComplete = true;
 }
 
+const Location* Client::findBestMatch(const std::string uri)
+{
+    int index = -1;
+    const std::vector<Location>& locations = currentServer->getLocations();
+
+    for (size_t i = 0; i < locations.size(); i++)
+    {
+        std::string loc = locations[i].getPATH();
+
+        if (uri.compare(0, loc.length(), loc) == 0
+            && (uri.length() == loc.length() || uri[loc.length()] == '/' || loc == "/"))
+        {
+            if (index != -1 && locations[index].getPATH().length() <  locations[i].getPATH().length())
+                index = i;
+            else if (index == -1)
+                index = i;
+        }
+    }
+    if (index == -1)
+        return NULL;
+    return &locations[index];
+}
+
+std::string Client::constructFilePath(std::string uri)
+{
+    std::string path;
+    const Location*   loc = findBestMatch(uri);
+
+    path = loc->getUploadStore() + uri.erase(0, loc->getPATH().length());
+    return path;
+}
 
 void    Client::appendData(const char* buf, ssize_t length)
 {
     if (!endHeaders)
     {
-        std::cout << "Buf: " << buf << std::endl;
         headers.append(buf, length);
         std::size_t headerPos = headers.find("\r\n\r\n");
         if (headerPos != std::string::npos)
@@ -430,7 +503,8 @@ void    Client::appendData(const char* buf, ssize_t length)
             size_t bodyInHeader = headers.length() - headerPos;
             if (hasBody && bodyInHeader > 0)
             {
-                currentRequest->generateTmpFile();
+                std::string target_path = constructFilePath(currentRequest->getPath());
+                currentRequest->generateTmpFile(target_path);
                 std::string bodyStart = headers.substr(headerPos);
                 handleBody(bodyStart.c_str(), bodyStart.length());
             }
@@ -442,4 +516,3 @@ void    Client::appendData(const char* buf, ssize_t length)
             handleBody(buf, length);
     }
 }
-

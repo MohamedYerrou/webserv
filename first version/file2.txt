@@ -11,9 +11,7 @@ server {
 
     location /upload {
         root /var/www/youtube/music;
-        index index1.html;
         methods GET POST DELETE;
-        autoindex on;
         return 200 /var/www/youtube/hiphop;
     }
 

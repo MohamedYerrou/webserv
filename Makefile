@@ -11,6 +11,7 @@ SRC = main.cpp \
 	srcs/Request.cpp \
 	srcs/Response.cpp \
 	srcs/Utils.cpp
+
 OBJ = $(SRC:.cpp=.o)
 
 all : $(NAME)

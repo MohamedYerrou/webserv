@@ -10,7 +10,7 @@ std::string currentDate()
     return std::string(buffer);
 }
 
-std::string intTostring(int value)
+std::string intTostring(size_t value)
 {
     std::string result;
     std::stringstream ss;
@@ -45,6 +45,13 @@ bool    isFile(const std::string& path)
     if (stat(path.c_str(), &fileStat) == -1)
         return false;
     return S_ISREG(fileStat.st_mode);
+}
+
+size_t  getFileSize(const std::string& path)
+{
+    struct stat sb;
+    stat(path.c_str(), &sb);
+    return (sb.st_size);
 }
 
 bool    isDir(const std::string& path)

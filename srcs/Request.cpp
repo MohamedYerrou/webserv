@@ -19,6 +19,11 @@ const std::string& Request::getMethod() const
     return method;
 }
 
+const std::string&  Request::getUri() const
+{
+    return uri;
+}
+
 const std::string& Request::getPath() const
 {
     return path;
@@ -71,6 +76,7 @@ std::string Request::decodeUri(const std::string& uri, bool isQuery)
             result += ' ';
             continue;
         }
+        
         if (uri[i] == '%' && i + 2  < uri.size())
         {
             if (isxdigit(uri[i + 1]) && isxdigit(uri[i + 2]))
@@ -240,10 +246,21 @@ void    Request::parseHeaders(const std::string& raw)
     }
 }
 
-void    Request::generateTmpFile()
+void    Request::generateTmpFile(const std::string& target_path)
 {
-    std::string tmpFile = "testFile";
-    uploadFile = open(tmpFile.c_str(), O_CREAT | O_RDWR, 0600);
+    char		fileNumber[15];
+    std::string fileName;
+
+    std::map<std::string, std::string>::iterator it = queries.find("filename");
+
+    if (it != queries.end())
+        fileName = target_path + "/" + it->second;
+    else
+    {
+        sprintf(fileNumber, "%ld", time(NULL));
+        fileName = target_path + "/uploadFile" + std::string(fileNumber);
+    }
+    uploadFile = open(fileName.c_str(), O_CREAT | O_RDWR, 0600);
     if (uploadFile == -1)
         throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
     std::cout << "Temporary file has been created" << std::endl;
@@ -251,7 +268,7 @@ void    Request::generateTmpFile()
 
 void    Request::appendBody(const char* buf, size_t length)
 {
-    std::cout << "body from request" << std::endl;
+    // std::cout << "body from request" << std::endl;
     ssize_t count = write(uploadFile, buf, length);
     if (count != (ssize_t)length)
         throw std::runtime_error("Write error: " + std::string(strerror(errno)));
@@ -262,4 +279,3 @@ void    Request::parseRequest(const std::string& raw)
     parseLine(raw);
     parseHeaders(raw);
 }
-

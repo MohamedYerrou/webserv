@@ -1,0 +1,64 @@
+server {
+    listen 127.0.0.1:8080;
+    listen 127.0.0.3:4242;
+
+    location / {
+        root /home/toro/Desktop/webserv;
+        index index1.html;
+        methods GET POST DELETE;
+        autoindex off;
+        upload_store /home/noudrib/Desktop/webserv_group/www;
+        error_page 403 /errors/403.html;
+        error_page 404 /errors/404.html;
+        error_page 405 /errors/405.html;
+        error_page 301 /errors/301.html;
+        error_page 500 /errors/500.html;
+        error_page 200 /errors/200.html;
+    }
+
+    location /upload {
+        root /home/toro/Desktop/webserv;
+        upload_store /home/noudrib/Desktop/webserv_group/upload;
+        index index1.html;
+        methods GET POST DELETE;
+        autoindex on;
+        return 200 /var/www/youtube/hiphop;
+    }
+
+    location /cgi-bin {
+        cgi .php /usr/bin/php-cgi;
+        cgi .py  /usr/bin/python3;
+    }
+}
+
+
+server {
+    listen 127.0.0.4:9194;
+
+    location /upload {
+        root /home/toro/Desktop/webserv;
+        methods DELETE;
+        index index2.html;
+        error_page 302 /errors/302.html;
+        error_page 500 /errors/500.html;
+
+    }
+
+    location /cgi-bin {
+        cgi .php /usr/bin/php-cgi;
+        cgi .py  /usr/bin/python3;
+    }
+}
+
+server {
+    listen 127.0.0.1:3663;
+
+    location /upload {
+        root /home/toro/Desktop/webserv;
+        methods GET;
+        index index3.html;
+        error_page 302 /errors/302.html;
+        error_page 500 /errors/500.html;
+        error_page 200 /errors/200.html;
+    }
+}

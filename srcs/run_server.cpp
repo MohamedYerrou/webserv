@@ -16,8 +16,11 @@
 #include "../includes/Server.hpp"
 #include "../includes/Client.hpp"
 #include "../includes/Utils.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/Utils.hpp"
 
-void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, std::vector<Server>& servers)
+void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, std::map<int, Server*>& servers_fd)
 {
 	int client_fd = accept(fd, NULL, NULL);
 	if (client_fd == -1)
@@ -28,31 +31,15 @@ void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, st
 	ev.data.fd = client_fd;
 	if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev) == -1)
 		throw_exception("epoll_ctl: ", strerror(errno));
-	
-	Server* srv = NULL;
-	for (size_t i = 0; i < servers.size(); i++)
-	{
-		if (servers[i].haslistenFD(fd))
-		{
-			srv = &servers[i];
-			break;
-		}
-	}
-	if (!srv)
-	{
-		std::cout << "ERROR: No server found for fd " << fd << std::endl;
-        close(client_fd);
-        return;
-	}
-	
-	//TODO: must ensure which server the client interact with.
-	clients[client_fd] = new Client(client_fd, srv);
+
+	clients[client_fd] = new Client(client_fd, servers_fd.find(fd)->second);
 }
 
 void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 {
 	char	buf[30];
 	Client* clientPtr = clients[fd];
+
 	ssize_t received = recv(clientPtr->getFD(), buf, sizeof(buf) - 1, 0);
 	if (received == -1)
 	{
@@ -64,7 +51,6 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 	else if (received == 0)
 	{
-		std::cout << "Connection closed" << std::endl;
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete clientPtr;
 		clients.erase(fd);
@@ -74,9 +60,11 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 	{
 		buf[received] = '\0';
 		clientPtr->appendData(buf, received);
+		//step6: if request complete
 		if (clientPtr->getReqComplete())
 		{
-			std::cout << "this will handle full request" << std::endl;
+			// std::cout << "this will handle full request" << std::endl;
+			// std::cout << "method: " << clientPtr->getRequest()->getMethod() << std::endl;
 			if (!clientPtr->getRequestError())
 				clientPtr->handleCompleteRequest();
 			struct epoll_event ev;
@@ -88,7 +76,54 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 }
 
-void	run_server(int epfd, std::vector<int>& fd_vect, std::vector<Server>& servers)
+
+void	handleClientResponse(int fd, int epfd, Client* c)
+{
+	(void) epfd;
+	(void) c;
+
+	std::string msg = "KKKKKKKKKKKKKKKLLLLLLLLLLLLLLLLL";
+	char body_size[50];
+	std::string body = "<html><body><h1>Hello from Webserv!<br>" + msg + "</h1></body></html>";
+	sprintf(body_size, "%d", (int)body.size());
+	std::string response = 
+		"HTTP/1.1 200 OK\r\n"
+		"Content-Length: " + std::string(body_size) + "\r\n"
+		"Content-Type: text/html\r\n"
+		"\r\n"
+		+ body;
+
+
+	send(fd, response.c_str(), response.size(), 0);
+	struct epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = fd;
+	if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
+		throw_exception("epoll_ctl: ", strerror(errno));
+	return ;
+
+	// int n = send(fd, c->getHeaders().c_str(), c->getHeaders().size(), 0);
+	// if (n == -1)
+	// 	throw_exception("send: ", strerror(errno));
+	// else
+	// {
+	// 	c.writeBuffer.erase(0, n);
+	// 	if (c.writeBuffer.empty())
+	// 	{
+	// 		struct epoll_event ev;
+	// 		ev.events = EPOLLIN;
+	// 		ev.data.fd = fd;
+
+	// 		if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
+	// 			throw_exception("epoll_ctl: ", strerror(errno));
+	// 		c.readBuffer.clear();
+	// 		return ;
+	// 	}
+	// }
+}
+
+
+void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
 	struct epoll_event events[64];
 	std::map<int, Client*> clients;
@@ -99,28 +134,34 @@ void	run_server(int epfd, std::vector<int>& fd_vect, std::vector<Server>& server
 		if (nfds == -1)
 			throw_exception("epoll_wait: ", strerror(errno));
 
+
 		for (int i = 0; i < nfds; i++)
 		{
 			int fd = events[i].data.fd;
-			if (listening_fd(fd_vect, fd))
-				handleListeningClient(epfd, fd, clients, servers);
+			if (listening_fd(servers_fd, fd))
+				handleListeningClient(epfd, fd, clients, servers_fd);
 			else if (events[i].events & EPOLLIN)
 				handleClientRequest(epfd, fd, clients);
 			else if (events[i].events & EPOLLOUT)
 			{
-				Response currentResponse = clients[fd]->getResponse();
-				std::string res = currentResponse.build();
-				ssize_t sent = send(fd, res.c_str(), res.length(), 0);
-				if ((std::size_t)sent == res.size())
+				Client* client = clients[fd];
+				if (!client->getSentAll())
+				{
+					client->handleFile();
+					Response& currentResponse = client->getResponse();
+					std::string res = currentResponse.build();
+					ssize_t sent = send(fd, res.c_str(), res.length(), 0);
+					if (sent == -1)
+					{
+						std::cout << "Sent Error: " << strerror(errno) << std::endl;
+						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+						clients.erase(fd);
+						close(fd);
+					}
+				}
+				else
 				{
 					std::cout << "Response has been sent" << std::endl;
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					clients.erase(fd);
-					close(fd);
-				}
-				if (sent == -1)
-				{
-					std::cout << "Sent Error: " << strerror(errno) << std::endl;
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 					clients.erase(fd);
 					close(fd);

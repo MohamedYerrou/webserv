@@ -1,7 +1,9 @@
 #include "../includes/Location.hpp"
+#include "../includes/Location.hpp"
 
 Location::Location(): _autoindex(false), isRedirection(false)
 {
+    _autoindex = false;
 }
 
 Location::~Location()

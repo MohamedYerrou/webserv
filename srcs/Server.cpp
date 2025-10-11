@@ -1,15 +1,20 @@
 #include "../includes/Server.hpp"
+#include "../includes/Server.hpp"
 #include <sys/socket.h>
+#include "../includes/Utils.hpp"
 #include "../includes/Utils.hpp"
 #include <iostream>
 #include <string.h>
 #include <sys/epoll.h>
 #include <arpa/inet.h>
 #include <cerrno>
+#include <utility>
+#include <utility>
 
-
-Server::Server(): client_max_body_size(1024)
+Server::Server()
 {
+	client_max_body_size = 1024;
+	client_max_body_size = 1024;
 }
 
 Server::~Server()
@@ -33,63 +38,47 @@ void    Server::push_location(Location location)
     locations.push_back(location);
 }
 
-bool    Server::haslistenFD(int fd)
-{
-	for (size_t i = 0; i < listens.size(); i++)
-	{
-		if (listening_fd[i] == fd)
-			return true;
-	}
-	return false;
-}
-
-void    Server::init_server(int epfd, std::vector<int>& fd_vect)
+void    Server::init_server(int epfd, std::map<int, Server*>& server_fd)
 {
     for (size_t i = 0; i < listens.size(); i++)
-		{
-			int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-			if (listen_fd == -1)
-				throw_exception("socket: ", strerror(errno));
+	{
+		int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+		if (listen_fd == -1)
+			throw_exception("socket: ", strerror(errno));
 
-			int opt = 1;
-			if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
-				throw_exception("setsockopt: ", strerror(errno));
-			
-			listening_fd.push_back(listen_fd);
-			fd_vect.push_back(listen_fd);
+		int opt = 1;
+		if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+			throw_exception("setsockopt: ", strerror(errno));
 
-			sockaddr_in addr;
-			addr.sin_family = AF_INET;
-			addr.sin_port = htons(listens[i].second);
-			addr.sin_addr.s_addr = inet_addr(listens[i].first.c_str());
+		// server_fd.push_back(listen_fd);
+		server_fd.insert(std::make_pair(listen_fd, this));
 
-			if (bind(listen_fd, (const sockaddr*)&addr, sizeof(addr)) == -1)
-				throw_exception("bind: ", strerror(errno));
+		sockaddr_in addr;
 
-			if (listen(listen_fd, SOMAXCONN) == -1)
-				throw_exception("listen: ", strerror(errno));
+		memset(&addr, 0, sizeof(addr));
+		addr.sin_family = AF_INET;
+		// std::cout << listens[i].second << std::endl;
+		addr.sin_port = htons(listens[i].second);
+		// std::cout << addr.sin_port << std::endl;
+		addr.sin_addr.s_addr = inet_addr(listens[i].first.c_str());
+		// std::cout << listens[i].first << std::endl;
 
-			setNonBlocking(listen_fd);
+		if (bind(listen_fd, (const sockaddr*)&addr, sizeof(addr)) == -1)
+			throw_exception("bind: ", strerror(errno));
 
-			std::cout << "Listening on: " << listens[i].first << ":" <<
-			listens[i].second << std::endl;
+		if (listen(listen_fd, SOMAXCONN) == -1)
+			throw_exception("listen: ", strerror(errno));
 
-			struct epoll_event ev;
-			ev.events = EPOLLIN;
-			ev.data.fd = listen_fd;
+		setNonBlocking(listen_fd);
 
-			if (epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
-				throw_exception("epoll_ctl: ", strerror(errno));
-		}
-	// std::vector<Location> locations = getLocations();
-	// if (locations.empty())
-    // {
-    //     std::cout << "No locations found!" << std::endl;
-    //     return;
-    // }
-	// for (size_t i = 0; i < locations.size(); i++)
-	// {
-	// 	locations[i].printLocation();
-	// 	std::cout << "===========================" << std::endl;
-	// }
+		std::cout << "Listening on: " << listens[i].first << ":" <<
+		listens[i].second << std::endl;
+
+		struct epoll_event ev;
+		ev.events = EPOLLIN;
+		ev.data.fd = listen_fd;
+
+		if (epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
+			throw_exception("epoll_ctl: ", strerror(errno));
+	}
 }

@@ -13,11 +13,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <map>
 #include "includes/Request.hpp"
 #include "includes/Location.hpp"
 #include "includes/Client.hpp"
 #include "includes/Server.hpp"
 #include "includes/Utils.hpp"
+#include <cstdio>
 
 void	setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
@@ -25,9 +27,9 @@ void	setNonBlocking(int fd) {
 		throw_exception("fcntl: ", strerror(errno));
 }
 
-void	tokenizer(std::vector<std::string>&	tokens)
+void	tokenizer(std::vector<std::string>&	tokens, std::string configFile)
 {
-	std::fstream				file("file.txt");
+	std::fstream				file(configFile.c_str());
 	std::string					line;
 	std::string					word;
 	std::stringstream			ss;
@@ -112,15 +114,9 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 		{
 			while (tokens[++i] != ";")
 				currLocation.push_index(tokens[i]);
-			// currLocation.set_index(tokens[++i]);
 		}
 		else if (tok == "upload_store" && inLocation)
 			currLocation.set_upload_store(tokens[++i]);
-		else if (tok == "autoindex" && inLocation)
-		{
-			if (tokens[++i] == "on")
-				currLocation.set_autoIndex(true);
-		}
 		else if (tok == "methods" && inLocation)
 		{
 			i++;
@@ -140,8 +136,13 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 			
 			status = atoi(tokens[++i].c_str());
 			path = tokens[++i];
-			currLocation.set_isRedirection(true);
 			currLocation.set_redir(make_pair(status, path));
+			currLocation.set_isRedirection(true);
+		}
+		else if (tok == "autoindex")
+		{
+			if (tokens[++i] == "on")
+				currLocation.set_autoIndex(true);
 		}
 		else if (tok == "}" && inServer && !inLocation)
 		{
@@ -153,13 +154,11 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 	return config;
 }
 
-bool listening_fd(std::vector<int>& vect, int fd)
+bool listening_fd(std::map<int, Server*>& servers_fd, int fd)
 {
-	for (size_t i = 0; i < vect.size(); i++)
-	{
-		if (fd == vect[i])
-			return true;
-	}
+	std::map<int, Server*>::iterator it = servers_fd.find(fd);
+	if (it != servers_fd.end())
+		return true;
 	return false;
 }
 
@@ -168,27 +167,31 @@ void	throw_exception(std::string function, std::string err)
 	throw MyException(function + err);
 }
 
-int main()
+int main(int ac, char** av)
 {
 	std::vector<std::string>	tokens;
-	std::vector<Server>	servers;
-	std::vector<int> fd_vect;
+	std::vector<Server>			servers;
+	std::map<int, Server*>		servers_fd;
 
 	try
 	{
-		tokenizer(tokens);
+		tokenizer(tokens, (ac != 2 ? "configFile1.txt" : av[1]));
 		servers = parser(tokens);
 		int epfd = epoll_create(1);
 		for (size_t i = 0; i < servers.size(); ++i) {
-            servers[i].init_server(epfd, fd_vect);
+            servers[i].init_server(epfd, servers_fd);
         }
-		run_server(epfd, fd_vect, servers);
+		run_server(epfd, servers_fd);
+		for (size_t i = 0; i < servers.size(); ++i) {
+            servers[i].init_server(epfd, servers_fd);
+        }
+		run_server(epfd, servers_fd);
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
-		std::cout << "hhhh" << std::endl;
 		exit(1);
 	}
     return 0;
 }
+
