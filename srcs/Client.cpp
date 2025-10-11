@@ -5,7 +5,6 @@ Client::Client(int fd, Server* srv)
 {
     bodySize = 0;
     sentAll = false;
-	sentHeaders = false;
 	fileOpened = false;
 }
 

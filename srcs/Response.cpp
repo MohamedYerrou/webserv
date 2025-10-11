@@ -41,14 +41,11 @@ std::string    Response::build()
     std::string res;
     if (!sentHeaders)
     {
-        std::cout << "ENTER HER" << std::endl;
         res += _protocol + " " + intTostring(codeStatus) + " " + textStatus + "\r\n";
         std::map<std::string, std::string>::iterator it;
         for (it = headers.begin(); it != headers.end(); it++)
             res += it->first + ": " + it->second + "\r\n";
         res += "\r\n";
-        std::cout << "RES: " << std::endl;
-        std::cout << res << std::endl;
         res += body;
         sentHeaders = true;
     }

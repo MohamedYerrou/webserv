@@ -3,10 +3,10 @@ server {
     listen 127.0.0.3:4242;
 
     location / {
-        root /home/toro/Desktop/webserv;
+        root /home/torokaro/Downloads;
         index index1.html;
         methods GET POST DELETE;
-        autoindex off;
+        autoindex on;
         upload_store /home/noudrib/Desktop/webserv_group/www;
         error_page 403 /errors/403.html;
         error_page 404 /errors/404.html;

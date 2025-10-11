@@ -31,7 +31,6 @@ class Client
 		const Location* location;
 		Response		currentResponse;
 		bool			sentAll;
-		bool			sentHeaders;
 		bool			fileOpened;
 	public:
 		Client(int fd, Server* srv);
