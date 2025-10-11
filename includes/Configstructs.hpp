@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 
-typedef struct LocationConfig
+typedef struct Location
 {
     std::string							path;
     std::string							root;
@@ -17,7 +17,7 @@ typedef struct LocationConfig
     std::map<std::string, std::string>	cgi;
 	std::pair<int, std::string>			http_redirection;
 
-	LocationConfig(): autoindex(false) {}
+	Location(): autoindex(false) {}
 
     // void print() const {
     //     std::cout << "    Location path: " << path << "\n";
@@ -30,7 +30,7 @@ typedef struct LocationConfig
     //         std::cout << "      cgi " << it->first << " " << it->second << "\n";
 	// 	std::cout << "      Return: " << http_redirection.first << " " << http_redirection.second << "\n";
     // }
-}				LocationConfig;
+}				Location;
 
 typedef struct ServerConfig
 {
@@ -40,9 +40,9 @@ typedef struct ServerConfig
     std::string									index;
     bool										autoindex;
     size_t										client_max_body_size;
-	std::vector<LocationConfig>					locations;
+	std::vector<Location>					locations;
 
-	ServerConfig(): autoindex(false), client_max_body_size(1024) {}
+	// ServerConfig(): autoindex(false), client_max_body_size(1024) {}
 
     // void print() const {
     //     std::cout << "Server:\n";
@@ -69,3 +69,4 @@ class MyException: public std::exception
         const char* what() const throw() {return msg.c_str();};
         virtual ~MyException() _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW {};
 };
+

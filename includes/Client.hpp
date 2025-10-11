@@ -1,0 +1,68 @@
+#ifndef CLIENT_HPP
+#define CLIENT_HPP
+
+#include <string>
+#include <iostream>
+#include <unistd.h>
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Server.hpp"
+#include "Location.hpp"
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include "Utils.hpp"
+#include <algorithm>
+#include <fstream>
+#include <dirent.h>
+
+class Client
+{
+	private:
+		int				fd;
+		std::string 	headers;
+		size_t			bodySize;
+		bool			endHeaders;
+		bool			reqComplete;
+		bool			hasBody;
+		bool			requestError;
+		Request*		currentRequest;
+		Server*			currentServer;
+		const Location* location;
+		Response		currentResponse;
+	public:
+		Client(int fd, Server* srv);
+		~Client();
+		int					getFD() const;
+		const std::string&	getHeaders() const;
+		bool				getEndHeaders() const;
+		bool				getReqComplete() const;
+		void				appendData(const char* buf, ssize_t length);
+		void				setBodySize(size_t size);
+		void				handleHeaders(const std::string& raw);
+		void				handleBody(const char* buf, ssize_t length);
+		Request*			getRequest() const;
+		void				handleCompleteRequest();
+		const Response& 	getResponse() const;
+		bool				getRequestError() const;
+		
+		//handle methods
+		const Location*	findMathLocation(std::string url);
+		const Location* 		findBestMatch(const std::string uri);
+		std::string		joinPath();
+		void			handleGET();
+		bool			allowedMethod(const std::string& method);
+		void			handleRedirection();
+		void			errorResponse(int code, const std::string& error);
+		void			handleDirectory(const std::string& path);
+		void			handleFile(const std::string& path);
+		void			listingDirectory(std::string path);
+		std::string		constructFilePath(std::string uri);
+
+		//added by mohamed
+
+		std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
+		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
+		void 					 handleCGIResponse(const std::string& cgiOutput);
+};
+
+#endif
