@@ -1,103 +1,140 @@
 #!/usr/bin/env python3
-import os
-import datetime
 
-# Correct CGI headers
 print("Content-Type: text/html\r\n\r\n")
 
-# Get some dynamic info
-request_method = os.getenv("REQUEST_METHOD", "UNKNOWN")
-script_name = os.getenv("SCRIPT_NAME", "UNKNOWN")
-server_software = os.getenv("SERVER_SOFTWARE", "WebServer/1.0")
-current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-# HTML content
 html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>CGI Super Page 🚀</title>
-<style>
-    body {{
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #f0f4ff, #d9e4ff);
-        color: #1a1a1a;
-        margin: 0;
-        padding: 0;
-    }}
-    header {{
-        background: #4b6cb7;
-        color: white;
-        padding: 1.5rem;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }}
-    nav {{
-        text-align: center;
-        margin: 1rem 0;
-    }}
-    nav a {{
-        margin: 0 1rem;
-        text-decoration: none;
-        color: #4b6cb7;
-        font-weight: bold;
-    }}
-    nav a:hover {{
-        color: #182848;
-        text-decoration: underline;
-    }}
-    section {{
-        max-width: 800px;
-        margin: 2rem auto;
-        padding: 1rem 2rem;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }}
-    footer {{
-        text-align: center;
-        padding: 1rem;
-        background: #f0f4ff;
-        color: #555;
-        border-top: 1px solid #ccc;
-        margin-top: 2rem;
-    }}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Server Test Page</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+        /* Reset & typography */
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Roboto', sans-serif; background: #e0e7ff; color: #333; line-height: 1.6; }}
+        a {{ text-decoration: none; color: inherit; }}
+
+        header {{
+            background: linear-gradient(90deg, #4b6cb7, #182848);
+            color: #fff;
+            text-align: center;
+            padding: 3rem 1rem;
+            position: relative;
+        }}
+        header h1 {{
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+        }}
+        header p {{
+            font-size: 1.2rem;
+            color: #d0d8ff;
+        }}
+
+        /* Container */
+        main {{
+            max-width: 900px;
+            margin: -2rem auto 2rem auto;
+            padding: 0 1rem;
+        }}
+
+        section.card {{
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }}
+        section.card:hover {{
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+        }}
+
+        h2 {{ color: #4b6cb7; margin-bottom: 1rem; }}
+        h3 {{ color: #182848; margin-bottom: 0.5rem; }}
+
+        ul.links {{
+            list-style: none;
+            padding-left: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }}
+        ul.links li {{
+            background: #f0f4ff;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }}
+        ul.links li:hover {{
+            background: #cbd5ff;
+        }}
+        ul.links li a {{
+            color: #182848;
+        }}
+
+        img {{
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-top: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }}
+
+        footer {{
+            text-align: center;
+            padding: 1.5rem 0;
+            color: #555;
+            font-size: 0.9rem;
+            border-top: 1px solid #ccc;
+        }}
+
+        /* Animations */
+        .fade-in {{
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards;
+        }}
+        @keyframes fadeInUp {{
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+    </style>
+
 </head>
 <body>
-<header>
-    <h1>Welcome to my CGI Page! 🚀 </h1>
-</header>
+    <header>
+        <h1 class="fade-in">Welcome to My Web Server from CGI!</h1>
+        <p class="fade-in" style="animation-delay: 0.1s;">Server is running using CGI script!</p>
+    </header>
 
-<nav>
-    <a href="/">Home</a>
-    <a href="/upload">Upload</a>
-    <a href="/cgi-bin">CGI</a>
-    <a href="/nonexistent">404</a>
-</nav>
+    <main>
+        <section class="card fade-in" style="animation-delay: 0.2s;">
+            <h2>Server Working</h2>
+            <p>Your web server is successfully serving HTML files. Everything is working perfectly!</p>
+        </section>
 
-<section>
-    <h2>Server & Request Info</h2>
-    <p><strong>Request Method:</strong> {request_method}</p>
-    <p><strong>Script Name:</strong> {script_name}</p>
-    <p><strong>Server Software:</strong> {server_software}</p>
-    <p><strong>Current Time:</strong> {current_time}</p>
-</section>
+        <section class="card fade-in" style="animation-delay: 0.3s;">
+            <h3>Quick Links</h3>
+            <ul class="links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/upload">Upload Page</a></li>
+                <li><a href="/nonexistent">404 Test Page</a></li>
+            </ul>
+        </section>
 
-<section>
-    <h2>About This CGI Page</h2>
-    <p>This page is dynamically generated by a Python CGI script. It demonstrates:</p>
-    <ul>
-        <li>Correct HTTP headers for CGI</li>
-        <li>Dynamic server information</li>
-        <li>Responsive and modern HTML styling</li>
-        <li>Navigation links for testing routes</li>
-    </ul>
-</section>
+        <section class="card fade-in" style="animation-delay: 0.4s;">
+            <h3>Test Images</h3>
+            <p>Here’s a sample image (if available in your server root):</p>
+            <img src="/test.jpg" alt="Test Image">
+        </section>
+    </main>
 
-<footer>
-    <p>&copy; {datetime.datetime.now().year} My Web Server | Powered by Python CGI</p>
-</footer>
+    <footer>
+        Web Server Version 1.0 &copy; 2025
+    </footer>
 </body>
 </html>
 """
