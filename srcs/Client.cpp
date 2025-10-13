@@ -61,6 +61,11 @@ bool				Client::getSentAll() const
     return sentAll;
 }
 
+void				Client::setSentAll(bool flag)
+{
+    sentAll = flag;
+}
+
 const Location*   Client::findMathLocation(std::string url)
 {
     if (url[0] != '/') //this if got an error in parsing
@@ -155,7 +160,6 @@ void    Client::PrepareResponse(const std::string& path)
         if (!fileStream.is_open())
         {
             errorResponse(500, strerror(errno));
-            sentAll = true;
             return;
         }
         fileOpened = true;
@@ -171,8 +175,11 @@ void    Client::PrepareResponse(const std::string& path)
 
 void    Client::handleFile()
 {
-    if (sentAll)
+    if (!fileOpened)
+    {
+        sentAll = true;
         return;
+    }
     char    buffer[1024];
     fileStream.read(buffer, sizeof(buffer));
     size_t bytesRead = fileStream.gcount();
@@ -224,18 +231,21 @@ void    Client::handleDirectory(const std::string& path)
     std::string indexPath = path;
     if (indexPath[indexPath.length() - 1] != '/')
         indexPath += '/';
+    size_t length = indexPath.length();
     std::vector<std::string> index = location->getIndex();
     std::vector<std::string>::iterator it;
     bool    foundFile = false;
     for (it = index.begin(); it != index.end(); it++)
     {
-        indexPath += *it;
+        std::string index = *it;
+        indexPath += index;
         if (isFile(indexPath))
         {
             PrepareResponse(indexPath);
             foundFile = true;
             break;
         }
+        indexPath.erase(length, indexPath.length());
     }
     if (!foundFile && location->getAutoIndex())
         listingDirectory(path);
@@ -373,7 +383,7 @@ void    Client::errorResponse(int code, const std::string& error)
     {
         std::string errorPage = it->second;
         std::string path = location->getRoot();
-        if (path[path.length() - 1] == '/')
+        if (!path.empty() && path[path.length() - 1] == '/')
             path.erase(path.length() - 1);
         if (errorPage[0] != '/')
             errorPage.insert(0, "/");
@@ -394,6 +404,7 @@ void    Client::errorResponse(int code, const std::string& error)
                 currentResponse.setHeaders("Date", currentDate());
                 currentResponse.setHeaders("Connection", "close");
                 currentResponse.setBody(body);
+                file.close();
                 return;
             }
         }

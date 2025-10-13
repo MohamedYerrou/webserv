@@ -48,6 +48,7 @@ class Client
 		Response& 			getResponse();
 		bool				getRequestError() const;
 		bool				getSentAll() const;
+		void				setSentAll(bool flag);
 		
 		//handle methods
 		const Location*	findMathLocation(std::string url);

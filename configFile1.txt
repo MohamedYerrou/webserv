@@ -3,8 +3,8 @@ server {
     listen 127.0.0.3:4242;
 
     location / {
-        root /home/torokaro/Downloads;
-        index index1.html;
+        root /home/toro/Downloads;
+        index index2.html index3.html index.html;
         methods GET POST DELETE;
         autoindex on;
         upload_store /home/noudrib/Desktop/webserv_group/www;

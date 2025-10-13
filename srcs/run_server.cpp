@@ -147,8 +147,7 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 				Client* client = clients[fd];
 				if (!client->getSentAll())
 				{
-					if (client->getRequest()->getMethod() == "GET")
-						client->handleFile();
+					client->handleFile();
 					Response& currentResponse = client->getResponse();
 					std::string res = currentResponse.build();
 					ssize_t sent = send(fd, res.c_str(), res.length(), 0);
