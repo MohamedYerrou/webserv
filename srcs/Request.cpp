@@ -246,7 +246,8 @@ void    Request::parseHeaders(const std::string& raw)
     }
 }
 
-void    Request::generateTmpFile(const std::string& target_path)
+
+std::string    Request::generateTmpFile(const std::string& target_path)
 {
     char		fileNumber[15];
     std::string fileName;
@@ -264,7 +265,30 @@ void    Request::generateTmpFile(const std::string& target_path)
     if (uploadFile == -1)
         throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
     std::cout << "Temporary file has been created" << std::endl;
+    return fileName;
 }
+
+
+// std::string    Request::generateTmpFile(const std::string& target_path)
+// {
+//     char		fileNumber[15];
+//     std::stringstream fileName;
+//     std::map<std::string, std::string>::iterator file_it = queries.find("filename");
+//     std::map<std::string, std::string>::iterator content_it = headers.find("Content-Type");
+
+//     if (content_it != headers.end() && content_it->second.find("multipart/form-data") != std::string::npos)
+//         fileName << "/tmpUpload" << time(NULL);
+//     else if (file_it != queries.end())
+//         fileName << target_path << "/" << file_it->second;
+//     else
+//         fileName << target_path << "/upload" << time(NULL);
+
+//     uploadFile = open(fileName.str().c_str(), O_CREAT | O_RDWR, 0600);
+//     if (uploadFile == -1)
+//         throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
+//     std::cout << "Temporary file has been created" << std::endl;
+//     return fileName.str();
+// }
 
 void    Request::appendBody(const char* buf, size_t length)
 {

@@ -28,6 +28,7 @@ class Client
 		Server*			currentServer;
 		const Location* location;
 		Response		currentResponse;
+		std::string		filename;
 	public:
 		Client(int fd, Server* srv);
 		~Client();
@@ -45,17 +46,20 @@ class Client
 		bool				getRequestError() const;
 		
 		//handle methods
-		const Location*	findMathLocation(std::string url);
-		const Location* 		findBestMatch(const std::string uri);
-		std::string		joinPath();
-		void			handleGET();
-		bool			allowedMethod(const std::string& method);
-		void			handleRedirection();
-		void			errorResponse(int code, const std::string& error);
-		void			handleDirectory(const std::string& path);
-		void			handleFile(const std::string& path);
-		void			listingDirectory(std::string path);
-		std::string		constructFilePath(std::string uri);
-};
-
-#endif
+		const Location*		findMathLocation(std::string url);
+		const Location*		findBestMatch(const std::string uri);
+		std::string			joinPath();
+		void				handleGET();
+		bool				allowedMethod(const std::string& method);
+		void				handleRedirection();
+		void				errorResponse(int code, const std::string& error);
+		void				handleDirectory(const std::string& path);
+		void				handleFile(const std::string& path);
+		void				listingDirectory(std::string path);
+		std::string			constructFilePath(std::string uri);
+		void				handlePost();
+		void				multiPartData();
+};	
+	
+#endif	
+	

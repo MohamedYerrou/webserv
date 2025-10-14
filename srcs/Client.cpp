@@ -247,33 +247,28 @@ void    Client::handleGET()
 
 // void    Client::handlePost()
 // {
-//     std::string		Content_type = (currentRequest->getHeaders())["Content-Type"];
+//     std::string		Content_type = currentRequest->getHeaders().at("Content-Type");
 //     std::fstream	body("testfile", std::ios::in);
 //     std::string		line;
 
-//     if (Content_type == "text/plain")
+//     if (Content_type == "application/x-www-form-urlencoded")
 //         return ;
-//     else if (Content_type == "multipart/form-data")
-//         return ;
-//     else if (Content_type == "application/x-www-form-urlencoded")
-//         return ;
+//     else
+//     {
+
+//     }
 // }
 
 void    Client::handleCompleteRequest()
 {
     if (currentRequest->getMethod() == "GET")
-    {
-        //TODO: handle get method
         handleGET();
-    }
     else if (currentRequest->getMethod() == "DELETE")
     {
-        //TODO: handle delete mothod
+          //TODO: handle delete mothod
     }
     else
-    {
-        //TODO: handle post method
-    }
+        handlePost();
 }
 
 void    Client::errorResponse(int code, const std::string& error)
@@ -349,21 +344,18 @@ void    Client::handleHeaders(const std::string& raw)
         requestError = true;
         if (currentRequest->getErrorVersion())
         {
-            std::cout << "LLLLLLLLLLLLLLLLLLLLLLLLLLLLL" << std::endl;
             errorResponse(505, e.what());
             return;
         }
         else
-        {
-            std::cout << "HERRRRRRRR" << std::endl;
             errorResponse(400, e.what());
-        }
         // std::cout << "Request error: " << e.what() << std::endl;
     }
 }
 
 void    Client::handleBody(const char* buf, ssize_t length)
 {
+    std::cout << "Buf: mmm" << buf << std::endl;
     size_t toAppend = std::min((size_t)length, bodySize);
     currentRequest->appendBody(buf, toAppend);
     bodySize -= toAppend;
@@ -419,7 +411,7 @@ void    Client::appendData(const char* buf, ssize_t length)
             if (hasBody && bodyInHeader > 0)
             {
                 std::string target_path = constructFilePath(currentRequest->getPath());
-                currentRequest->generateTmpFile(target_path);
+                filename = currentRequest->generateTmpFile(target_path);
                 std::string bodyStart = headers.substr(headerPos);
                 handleBody(bodyStart.c_str(), bodyStart.length());
             }
@@ -431,4 +423,3 @@ void    Client::appendData(const char* buf, ssize_t length)
             handleBody(buf, length);
     }
 }
-

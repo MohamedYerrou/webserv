@@ -78,51 +78,71 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 }
 
 
-void	handleClientResponse(int fd, int epfd, Client* c)
+// void	handleClientResponse(int fd, int epfd, Client* c)
+// {
+// 	(void) epfd;
+// 	(void) c;
+
+// 	std::string msg = "KKKKKKKKKKKKKKKLLLLLLLLLLLLLLLLL";
+// 	char body_size[50];
+// 	std::string body = "<html><body><h1>Hello from Webserv!<br>" + msg + "</h1></body></html>";
+// 	sprintf(body_size, "%d", (int)body.size());
+// 	std::string response = 
+// 		"HTTP/1.1 200 OK\r\n"
+// 		"Content-Length: " + std::string(body_size) + "\r\n"
+// 		"Content-Type: text/html\r\n"
+// 		"\r\n"
+// 		+ body;
+
+
+// 	send(fd, response.c_str(), response.size(), 0);
+// 	struct epoll_event ev;
+// 	ev.events = EPOLLIN;
+// 	ev.data.fd = fd;
+// 	if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
+// 		throw_exception("epoll_ctl: ", strerror(errno));
+// 	return ;
+
+// 	// int n = send(fd, c->getHeaders().c_str(), c->getHeaders().size(), 0);
+// 	// if (n == -1)
+// 	// 	throw_exception("send: ", strerror(errno));
+// 	// else
+// 	// {
+// 	// 	c.writeBuffer.erase(0, n);
+// 	// 	if (c.writeBuffer.empty())
+// 	// 	{
+// 	// 		struct epoll_event ev;
+// 	// 		ev.events = EPOLLIN;
+// 	// 		ev.data.fd = fd;
+
+// 	// 		if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
+// 	// 			throw_exception("epoll_ctl: ", strerror(errno));
+// 	// 		c.readBuffer.clear();
+// 	// 		return ;
+// 	// 	}
+// 	// }
+// }
+
+void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 {
-	(void) epfd;
-	(void) c;
-
-	std::string msg = "KKKKKKKKKKKKKKKLLLLLLLLLLLLLLLLL";
-	char body_size[50];
-	std::string body = "<html><body><h1>Hello from Webserv!<br>" + msg + "</h1></body></html>";
-	sprintf(body_size, "%d", (int)body.size());
-	std::string response = 
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Length: " + std::string(body_size) + "\r\n"
-		"Content-Type: text/html\r\n"
-		"\r\n"
-		+ body;
-
-
-	send(fd, response.c_str(), response.size(), 0);
-	struct epoll_event ev;
-	ev.events = EPOLLIN;
-	ev.data.fd = fd;
-	if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
-		throw_exception("epoll_ctl: ", strerror(errno));
-	return ;
-
-	// int n = send(fd, c->getHeaders().c_str(), c->getHeaders().size(), 0);
-	// if (n == -1)
-	// 	throw_exception("send: ", strerror(errno));
-	// else
-	// {
-	// 	c.writeBuffer.erase(0, n);
-	// 	if (c.writeBuffer.empty())
-	// 	{
-	// 		struct epoll_event ev;
-	// 		ev.events = EPOLLIN;
-	// 		ev.data.fd = fd;
-
-	// 		if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
-	// 			throw_exception("epoll_ctl: ", strerror(errno));
-	// 		c.readBuffer.clear();
-	// 		return ;
-	// 	}
-	// }
+	Response currentResponse = clients[fd]->getResponse();
+	std::string res = currentResponse.build();
+	ssize_t sent = send(fd, res.c_str(), res.length(), 0);
+	if ((std::size_t)sent == res.size())
+	{
+		std::cout << "Response has been sent" << std::endl;
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		clients.erase(fd);
+		close(fd);
+	}
+	if (sent == -1)
+	{
+		std::cout << "Sent Error: " << strerror(errno) << std::endl;
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		clients.erase(fd);
+		close(fd);
+	}
 }
-
 
 void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
@@ -134,8 +154,6 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 		int nfds = epoll_wait(epfd, events, 64, -1);
 		if (nfds == -1)
 			throw_exception("epoll_wait: ", strerror(errno));
-
-
 		for (int i = 0; i < nfds; i++)
 		{
 			int fd = events[i].data.fd;
@@ -144,25 +162,7 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 			else if (events[i].events & EPOLLIN)
 				handleClientRequest(epfd, fd, clients);
 			else if (events[i].events & EPOLLOUT)
-			{
-				Response currentResponse = clients[fd]->getResponse();
-				std::string res = currentResponse.build();
-				ssize_t sent = send(fd, res.c_str(), res.length(), 0);
-				if ((std::size_t)sent == res.size())
-				{
-					std::cout << "Response has been sent" << std::endl;
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					clients.erase(fd);
-					close(fd);
-				}
-				if (sent == -1)
-				{
-					std::cout << "Sent Error: " << strerror(errno) << std::endl;
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					clients.erase(fd);
-					close(fd);
-				}
-			}
+				handleClientResponse(epfd, fd,  clients);
 		}
 	}
 }

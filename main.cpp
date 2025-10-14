@@ -175,15 +175,9 @@ int main(int ac, char** av)
 
 	try
 	{
-
-
 		tokenizer(tokens, (ac != 2 ? "configFile1.txt" : av[1]));
 		servers = parser(tokens);
 		int epfd = epoll_create(1);
-		for (size_t i = 0; i < servers.size(); ++i) {
-            servers[i].init_server(epfd, servers_fd);
-        }
-		run_server(epfd, servers_fd);
 		for (size_t i = 0; i < servers.size(); ++i) {
             servers[i].init_server(epfd, servers_fd);
         }
