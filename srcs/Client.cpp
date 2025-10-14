@@ -338,6 +338,7 @@ void    Client::handleDELETE()
             return;
         }
         std::string totalPath = joinPath();
+        std::cout << "total path: " << totalPath << std::endl;
         if (isDir(totalPath))
             handleDeleteDir(totalPath);
         else if (isFile(totalPath))
@@ -411,8 +412,8 @@ void    Client::errorResponse(int code, const std::string& error)
     }
     std::stringstream body;
     body << "<!DOCTYPE HTML>"
-        << "<html><head><title>"<< code << " " << getStatusText(code) << "</title></head>"
-        << "<body><h1>"<< code << " " << getStatusText(code) << "</h1>"
+        << "<html><head><title>"<< code << " - " << getStatusText(code) << "</title></head>"
+        << "<body><h1>"<< code << " - " << getStatusText(code) << "</h1>"
         << "<p>" << error << "</p>"
         << "</body></html>";
 
@@ -445,15 +446,7 @@ void    Client::handleHeaders(const std::string& raw)
     {
         reqComplete = true;
         requestError = true;
-        if (currentRequest->getErrorVersion())
-        {
-            errorResponse(505, e.what());
-            return;
-        }
-        else
-        {
-            errorResponse(400, e.what());
-        }
+        errorResponse(currentRequest->getStatusCode(), e.what());
         // std::cout << "Request error: " << e.what() << std::endl;
     }
 }

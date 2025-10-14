@@ -3,10 +3,10 @@ server {
     listen 127.0.0.3:4242;
 
     location / {
-        root /home/toro/Downloads;
-        index index2.html index3.html index.html;
+        root /home/toro/Desktop/webserv;
+        index index2.html index3.html index2.html;
         methods GET POST DELETE;
-        autoindex on;
+        autoindex off;
         upload_store /home/noudrib/Desktop/webserv_group/www;
         error_page 403 /errors/403.html;
         error_page 404 /errors/404.html;
@@ -19,10 +19,11 @@ server {
     location /upload {
         root /home/toro/Desktop/webserv;
         upload_store /home/noudrib/Desktop/webserv_group/upload;
-        index index1.html;
+        index index.html;
         methods GET POST DELETE;
         autoindex on;
-        return 200 /var/www/youtube/hiphop;
+        
+        
     }
 
     location /cgi-bin {
@@ -37,7 +38,9 @@ server {
 
     location /upload {
         root /home/toro/Desktop/webserv;
-        methods DELETE;
+        methods DELETE GET;
+        autoindex on;
+        return 
         index index2.html;
         error_page 302 /errors/302.html;
         error_page 500 /errors/500.html;

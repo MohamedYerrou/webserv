@@ -39,6 +39,12 @@ std::string trim(std::string str)
     return (str.substr(start, end - start + 1));
 }
 
+void    toLowerCase(std::string& str)
+{
+    for (size_t i = 0; i < str.length(); i++)
+        str[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(str[i])));
+}
+
 bool    isFile(const std::string& path)
 {
     struct stat fileStat;
@@ -127,6 +133,9 @@ std::string getStatusText(int code)
             break;
         case 411:
             text = "Length Required";
+            break;
+        case 414:
+            text = "URI Too Long";
             break;
         case 500:
             text = "Internal Server Error";

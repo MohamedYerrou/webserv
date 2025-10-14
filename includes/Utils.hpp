@@ -36,5 +36,6 @@ std::string getMimeType(const std::string& path);
 bool    allowedDelete(std::string path);
 bool    isEmpty(const std::string& path);
 size_t  getFileSize(const std::string& path);
+void    toLowerCase(std::string& str);
 
 #endif
