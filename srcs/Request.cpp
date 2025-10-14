@@ -46,7 +46,7 @@ const std::map<std::string, std::string>& Request::getQueries() const
 
 size_t  Request::getContentLength() const
 {
-    std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
+    std::map<std::string, std::string>::const_iterator it = headers.find("content-length");
     if (it != headers.end())
     {
         int length = stringToInt(it->second);

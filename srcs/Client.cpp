@@ -14,6 +14,8 @@ Client::~Client()
     {
         fileStream.close();
     }
+    if (currentRequest)
+        free(currentRequest);
 }
 
 int Client::getFD() const
