@@ -24,6 +24,6 @@ server {
 
     location /cgi-bin {
         cgi .php /usr/bin/php-cgi;
-        cgi .py  /usr/bin/python3;
+        cgi .py /usr/bin/python3;
     }
 }

@@ -88,7 +88,7 @@ void	handleClientResponse(int fd, int epfd, Client* c)
 	std::string body = "<html><body><h1>Hello from Webserv!<br>" + msg + "</h1></body></html>";
 	sprintf(body_size, "%d", (int)body.size());
 	std::string response = 
-		"HTTP/1.1 200 OK\r\n"
+		"HTTP/1.0 200 OK\r\n"
 		"Content-Length: " + std::string(body_size) + "\r\n"
 		"Content-Type: text/html\r\n"
 		"\r\n"

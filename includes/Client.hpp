@@ -63,6 +63,7 @@ class Client
 		std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
 		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
 		void 					 handleCGIResponse(const std::string& cgiOutput);
+		void					 handleCGI(std::string totalPath);
 };
 
 #endif

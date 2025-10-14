@@ -217,69 +217,83 @@ void    Client::handleDirectory(const std::string& path)
         errorResponse(403, "Forbiden serving this directory");
 }
 
-//modified by Mohamed
+void Client::handleCGI(std::string totalPath)
+{
+    std::cout << "[CGI] Entered handleCGI() for path: " << totalPath << std::endl;
+
+    std::size_t dotPos = totalPath.find_last_of('.');
+    if (dotPos == std::string::npos)
+    {
+        std::cerr << "[CGI] No file extension found in path: " << totalPath << std::endl;
+        errorResponse(400, "Invalid CGI path: missing extension");
+        return;
+    }
+
+    std::string ext = totalPath.substr(dotPos);
+    std::cout << "[CGI] Detected file extension: " << ext << std::endl;
+
+    const std::map<std::string, std::string>& cgiMap = location->getCgi();
+
+    std::map<std::string, std::string>::const_iterator it = cgiMap.find(ext);
+    if (it == cgiMap.end())
+    {
+        std::cerr << "[CGI] No interpreter configured for extension: " << ext << std::endl;
+        errorResponse(500, "Unsupported CGI extension");
+        return;
+    }
+
+    const std::string& interpreter = it->second;
+    std::cout << "[CGI] Using interpreter: " << interpreter << std::endl;
+
+    try
+    {
+        std::string output = executeCGI(totalPath, interpreter);
+        std::cout << "[CGI] CGI executed successfully, output length: " 
+                  << output.size() << " bytes" << std::endl;
+
+        handleCGIResponse(output);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "[CGI] Exception while executing CGI: " << e.what() << std::endl;
+        errorResponse(500, e.what());
+    }
+}
 
 void Client::handleGET()
 {
-	// location = findMathLocation(currentRequest->getPath());
-	// if (!location)
-	// {
-	// 	errorResponse(404, "Not Found");
-	// 	return;
-	// }
-
-	// // Redirection check
-	// if (location->hasRedir())
-	// {
-	// 	handleRedirection();
-	// 	return;
-	// }
-
-	// if (location->getRoot().empty())
-	// {
-	// 	errorResponse(500, "Missing root directive");
-	// 	return;
-	// }
-
-	std::string totalPath = joinPath();
-
-	// --- CGI DETECTION ---
-	const std::map<std::string, std::string>& cgiMap = location->getCgi();
-	for (std::map<std::string, std::string>::const_iterator it = cgiMap.begin(); it != cgiMap.end(); ++it)
+	location = findMathLocation(currentRequest->getPath());
+	if (!location)
 	{
-		const std::string& ext = it->first;
-		const std::string& interpreter = it->second;
-
-		if (totalPath.size() >= ext.size() && totalPath.substr(totalPath.size() - ext.size()) == ext)
-		{
-			// Run CGI
-			try
-			{
-				std::string output = executeCGI(totalPath, interpreter);
-				handleCGIResponse(output);
-			}
-			catch (const std::exception& e)
-			{
-				errorResponse(500, e.what());
-			}
-			return;
-		}
+		errorResponse(404, "Not Found");
+		return;
 	}
-
-	// --- DIRECTORY HANDLING ---
+	if (location->hasRedir())
+	{
+		handleRedirection();
+		return;
+	}
+	if (location->getRoot().empty())
+	{
+		errorResponse(500, "Missing root directive");
+		return;
+	}
+	std::string totalPath = joinPath();
+    if (totalPath.find("cgi-bin/") != std::string::npos)
+    {
+        handleCGI(totalPath);
+        return;
+    }
 	if (isDir(totalPath))
 	{
 		handleDirectory(totalPath);
 		return;
 	}
-
-	// --- STATIC FILE HANDLING ---
 	if (isFile(totalPath))
 	{
 		handleFile(totalPath);
 		return;
 	}
-
 	errorResponse(404, "Not Found");
 }
 
@@ -327,27 +341,6 @@ void Client::handleGET()
 
 void    Client::handleCompleteRequest()
 {
-    // modified by mohamed
-    location = findMathLocation(currentRequest->getPath());
-	if (!location)
-	{
-		errorResponse(404, "Not Found");
-		return;
-	}
-
-	// Redirection check
-	if (location->hasRedir())
-	{
-		handleRedirection();
-		return;
-	}
-
-	if (location->getRoot().empty())
-	{
-		errorResponse(500, "Missing root directive");
-		return;
-	}
-
     if (currentRequest->getMethod() == "GET")
     {
         //TODO: handle get method
@@ -526,7 +519,7 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
 {
 	std::vector<std::string> env;
 
-	env.push_back("GATEWAY_INTERFACE=CGI/1.1");
+	env.push_back("GATEWAY_INTERFACE=CGI/1.0");
 	env.push_back("SERVER_PROTOCOL=" + currentRequest->getProtocol());
 	env.push_back("REQUEST_METHOD=" + currentRequest->getMethod());
 	env.push_back("SCRIPT_FILENAME=" + scriptPath);
