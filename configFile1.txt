@@ -6,7 +6,7 @@ server {
         root /home/toro/Desktop/webserv;
         index index2.html index3.html index2.html;
         methods GET POST DELETE;
-        autoindex off;
+        autoindex on;
         upload_store /home/noudrib/Desktop/webserv_group/www;
         error_page 403 /errors/403.html;
         error_page 404 /errors/404.html;
