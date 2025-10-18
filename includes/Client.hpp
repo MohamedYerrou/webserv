@@ -58,8 +58,8 @@ class Client
 		void			listingDirectory(std::string path);
 		std::string		constructFilePath(std::string uri);
 
-		//added by mohamed
-
+		
+		//Cgi added by mohamed
 		std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
 		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
 		void 					 handleCGIResponse(const std::string& cgiOutput);

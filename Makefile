@@ -4,6 +4,7 @@ CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
 SRC = main.cpp \
+	srcs/Cgi.cpp \
 	srcs/Client.cpp \
 	srcs/Server.cpp \
 	srcs/Location.cpp \
@@ -28,3 +29,5 @@ fclean : clean
 re : fclean all
 
 .PHONY : all clean fclean re
+
+.SECONDARY:
