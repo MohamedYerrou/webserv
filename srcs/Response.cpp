@@ -2,6 +2,7 @@
 #include "../includes/Utils.hpp"
 
 Response::Response()
+    : sentHeaders(false)
 {
 }
 
@@ -30,14 +31,25 @@ void    Response::setBody(std::string body)
     this->body = body;
 }
 
+void	Response::setEndHeaders(bool flag)
+{
+    sentHeaders = flag;
+}
+
 std::string    Response::build()
 {
     std::string res;
-    res += _protocol + " " + intTostring(codeStatus) + " " + textStatus + "\r\n";
-    std::map<std::string, std::string>::iterator it;
-    for (it = headers.begin(); it != headers.end(); it++)
-        res += it->first + ": " + it->second + "\r\n";
-    res += "\r\n";
-    res += body;
+    if (!sentHeaders)
+    {
+        res += _protocol + " " + intTostring(codeStatus) + " " + textStatus + "\r\n";
+        std::map<std::string, std::string>::iterator it;
+        for (it = headers.begin(); it != headers.end(); it++)
+            res += it->first + ": " + it->second + "\r\n";
+        res += "\r\n";
+        res += body;
+        sentHeaders = true;
+    }
+    else
+        res += body;
     return res;
 }

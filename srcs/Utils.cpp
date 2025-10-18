@@ -10,7 +10,7 @@ std::string currentDate()
     return std::string(buffer);
 }
 
-std::string intTostring(int value)
+std::string intTostring(size_t value)
 {
     std::string result;
     std::stringstream ss;
@@ -39,6 +39,12 @@ std::string trim(std::string str)
     return (str.substr(start, end - start + 1));
 }
 
+void    toLowerCase(std::string& str)
+{
+    for (size_t i = 0; i < str.length(); i++)
+        str[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(str[i])));
+}
+
 bool    isFile(const std::string& path)
 {
     struct stat fileStat;
@@ -47,12 +53,47 @@ bool    isFile(const std::string& path)
     return S_ISREG(fileStat.st_mode);
 }
 
+size_t  getFileSize(const std::string& path)
+{
+    struct stat sb;
+    stat(path.c_str(), &sb);
+    return (sb.st_size);
+}
+
 bool    isDir(const std::string& path)
 {
     struct stat fileStat;
     if (stat(path.c_str(), &fileStat) == -1)
         return false;
     return S_ISDIR(fileStat.st_mode);
+}
+
+bool    allowedDelete(std::string path)
+{
+    std::size_t pos = path.find_last_of('/');
+    std::string parentDir = path.substr(0, pos);
+    if (access(parentDir.c_str(), W_OK | X_OK) != 0)
+        return false;
+    return true;
+}
+
+bool    isEmpty(const std::string& path)
+{
+    DIR* dirStram = opendir(path.c_str());
+    if (!dirStram)
+        return false;
+    struct dirent* entry;
+    bool empty = true;
+    while ((entry = readdir(dirStram)) != NULL)
+    {
+        if (std::string(entry->d_name) != "." && std::string(entry->d_name) != "..")
+        {
+            empty = false;
+            break;
+        }
+    }
+    closedir(dirStram);
+    return empty;
 }
 
 std::string getStatusText(int code)
@@ -87,8 +128,14 @@ std::string getStatusText(int code)
         case 408:
             text = "Request Timeout";
             break;
+        case 409:
+            text = "Conflict";
+            break;
         case 411:
             text = "Length Required";
+            break;
+        case 414:
+            text = "URI Too Long";
             break;
         case 500:
             text = "Internal Server Error";

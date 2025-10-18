@@ -14,11 +14,13 @@
 #include <algorithm>
 #include <fstream>
 #include <dirent.h>
+#include <cstdio>
 
 class Client
 {
 	private:
 		int				fd;
+		std::ifstream	fileStream;
 		std::string 	headers;
 		size_t			bodySize;
 		bool			endHeaders;
@@ -29,6 +31,8 @@ class Client
 		Server*			currentServer;
 		const Location* location;
 		Response		currentResponse;
+		bool			sentAll;
+		bool			fileOpened;
 	public:
 		Client(int fd, Server* srv);
 		~Client();
@@ -42,21 +46,27 @@ class Client
 		void				handleBody(const char* buf, ssize_t length);
 		Request*			getRequest() const;
 		void				handleCompleteRequest();
-		const Response& 	getResponse() const;
+		Response& 			getResponse();
 		bool				getRequestError() const;
+		bool				getSentAll() const;
+		void				setSentAll(bool flag);
 		
 		//handle methods
 		const Location*	findMathLocation(std::string url);
 		const Location* 		findBestMatch(const std::string uri);
 		std::string		joinPath();
 		void			handleGET();
+        void            handleDELETE();
+        void            handleDeleteFile(std::string totalPath);
+        void            handleDeleteDir(std::string totalPath);
 		bool			allowedMethod(const std::string& method);
 		void			handleRedirection();
 		void			errorResponse(int code, const std::string& error);
 		void			handleDirectory(const std::string& path);
-		void			handleFile(const std::string& path);
+		void			handleFile();
 		void			listingDirectory(std::string path);
 		std::string		constructFilePath(std::string uri);
+		void    		PrepareResponse(const std::string& path);
 
 		
 		//Cgi added by mohamed
@@ -67,3 +77,4 @@ class Client
 };
 
 #endif
+

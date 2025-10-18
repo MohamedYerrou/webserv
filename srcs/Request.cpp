@@ -1,7 +1,7 @@
 #include "../includes/Request.hpp"
 
 Request::Request()
-    : uploadFile(-1), errorVersion(false)
+    : uploadFile(-1), MAX_URL_LENGTH(50), statusCode(400)
 {
 }
 
@@ -9,9 +9,9 @@ Request::~Request()
 {
 }
 
-bool Request::getErrorVersion()
+int Request::getStatusCode()
 {
-    return errorVersion;
+    return statusCode;
 }
 
 const std::string& Request::getMethod() const
@@ -46,7 +46,7 @@ const std::map<std::string, std::string>& Request::getQueries() const
 
 size_t  Request::getContentLength() const
 {
-    std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
+    std::map<std::string, std::string>::const_iterator it = headers.find("content-length");
     if (it != headers.end())
     {
         int length = stringToInt(it->second);
@@ -180,6 +180,11 @@ bool Request::parseUri(const std::string& uri)
     // std::cout << "Uri: " << uri << std::endl;
     if (uri.empty() || uri[0] != '/')
         return false;
+    if (uri.length() > MAX_URL_LENGTH)
+    {
+        statusCode = 414;
+        return false;
+    }
     std::string str = removeFragment(uri);
     splitUri(str);
 
@@ -210,7 +215,7 @@ void    Request::parseLine(const std::string& raw)
             throw std::runtime_error("Bad request: protocol empty");
         // if (protocol != "http/1.0")
         // {
-        //     errorVersion = true;
+        //     statusCode = 505;
         //     throw std::runtime_error("Bad request: Unsupported HTTP version");
         // }
     }
@@ -237,7 +242,11 @@ void    Request::parseHeaders(const std::string& raw)
             std::string key = trim(headerLine.substr(0, colonPos));
             std::string value = trim(headerLine.substr(colonPos + 1));
             if (!key.empty())
+            {
+                toLowerCase(key);
+                toLowerCase(value);
                 headers[key] = value;
+            }
         }
         else
             throw std::runtime_error("Bad request: Invalid header format");

@@ -3,7 +3,7 @@ server {
 
     location / {
         root /home/myerrou/server;
-        index index1.html;
+        index html_files/index1.html;
         methods GET POST DELETE;
         autoindex on;
         upload_store /home/myerrou/server/www;
@@ -16,7 +16,7 @@ server {
     location /upload {
         root /var/www/youtube/music;
         upload_store /home/myerrou/server/upload;
-        index index1.html;
+        index html_files/index1.html;
         methods GET POST DELETE;
         autoindex on;
         return 200 /var/www/youtube/hiphop;

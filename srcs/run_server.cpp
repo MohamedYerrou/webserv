@@ -51,7 +51,6 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 	else if (received == 0)
 	{
-		std::cout << "Connection closed" << std::endl;
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete clientPtr;
 		clients.erase(fd);
@@ -77,50 +76,32 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 }
 
-
-void	handleClientResponse(int fd, int epfd, Client* c)
+void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 {
-	(void) epfd;
-	(void) c;
-
-	std::string msg = "KKKKKKKKKKKKKKKLLLLLLLLLLLLLLLLL";
-	char body_size[50];
-	std::string body = "<html><body><h1>Hello from server!<br>" + msg + "</h1></body></html>";
-	sprintf(body_size, "%d", (int)body.size());
-	std::string response = 
-		"HTTP/1.0 200 OK\r\n"
-		"Content-Length: " + std::string(body_size) + "\r\n"
-		"Content-Type: text/html\r\n"
-		"\r\n"
-		+ body;
-
-
-	send(fd, response.c_str(), response.size(), 0);
-	struct epoll_event ev;
-	ev.events = EPOLLIN;
-	ev.data.fd = fd;
-	if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
-		throw_exception("epoll_ctl: ", strerror(errno));
-	return ;
-
-	// int n = send(fd, c->getHeaders().c_str(), c->getHeaders().size(), 0);
-	// if (n == -1)
-	// 	throw_exception("send: ", strerror(errno));
-	// else
-	// {
-	// 	c.writeBuffer.erase(0, n);
-	// 	if (c.writeBuffer.empty())
-	// 	{
-	// 		struct epoll_event ev;
-	// 		ev.events = EPOLLIN;
-	// 		ev.data.fd = fd;
-
-	// 		if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
-	// 			throw_exception("epoll_ctl: ", strerror(errno));
-	// 		c.readBuffer.clear();
-	// 		return ;
-	// 	}
-	// }
+	Client* client = clients[fd];
+	if (!client->getSentAll())
+	{
+		client->handleFile();
+		Response& currentResponse = client->getResponse();
+		std::string res = currentResponse.build();
+		ssize_t sent = send(fd, res.c_str(), res.length(), 0);
+		if (sent == -1)
+		{
+			std::cout << "Sent Error: " << strerror(errno) << std::endl;
+			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+			delete client;
+			clients.erase(fd);
+			close(fd);
+		}
+	}
+	else
+	{
+		std::cout << "Response has been sent" << std::endl;
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		delete client;
+		clients.erase(fd);
+		close(fd);
+	}
 }
 
 
@@ -145,23 +126,31 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 				handleClientRequest(epfd, fd, clients);
 			else if (events[i].events & EPOLLOUT)
 			{
-				Response currentResponse = clients[fd]->getResponse();
-				std::string res = currentResponse.build();
-				ssize_t sent = send(fd, res.c_str(), res.length(), 0);
-				if ((std::size_t)sent == res.size())
-				{
-					std::cout << "Response has been sent" << std::endl;
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					clients.erase(fd);
-					close(fd);
-				}
-				if (sent == -1)
-				{
-					std::cout << "Sent Error: " << strerror(errno) << std::endl;
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					clients.erase(fd);
-					close(fd);
-				}
+				handleClientResponse(epfd, fd, clients);
+				// Client* client = clients[fd];
+				// if (!client->getSentAll())
+				// {
+				// 	client->handleFile();
+				// 	Response& currentResponse = client->getResponse();
+				// 	std::string res = currentResponse.build();
+				// 	ssize_t sent = send(fd, res.c_str(), res.length(), 0);
+				// 	if (sent == -1)
+				// 	{
+				// 		std::cout << "Sent Error: " << strerror(errno) << std::endl;
+				// 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+				// 		delete client;
+				// 		clients.erase(fd);
+				// 		close(fd);
+				// 	}
+				// }
+				// else
+				// {
+				// 	std::cout << "Response has been sent" << std::endl;
+				// 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+				// 	delete client;
+				// 	clients.erase(fd);
+				// 	close(fd);
+				// }
 			}
 		}
 	}

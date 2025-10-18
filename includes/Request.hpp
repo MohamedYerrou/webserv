@@ -25,11 +25,12 @@ class Request
 		std::string							protocol;
 		std::map<std::string, std::string>	headers;
 		std::map<std::string, std::string>	queries;
-		bool								errorVersion;
+		size_t								MAX_URL_LENGTH;
+		int									statusCode;
 	public:
 		Request();
 		~Request();
-		bool										getErrorVersion();
+		int 										getStatusCode();
 		const std::string&							getMethod() const;
 		const std::string&							getUri() const;
 		const std::string&							getPath() const;
