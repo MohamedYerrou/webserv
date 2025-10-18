@@ -1,160 +1,111 @@
 #!/usr/bin/env python3
-import cgi
-import cgitb
+print("Content-Type: text/html\r\n\r\n")
+
 import os
 from datetime import datetime
-from html import escape
 
-cgitb.enable()  # for debugging
-
-print("Content-Type: text/html; charset=UTF-8\r\n\r\n")
-
-# --- Handle form input ---
-form = cgi.FieldStorage()
-message = escape(form.getfirst("message", ""))
-
-# --- Handle file upload ---
-upload_msg = ""
-if "file" in form and hasattr(form["file"], "filename"):
-    file_item = form["file"]
-    filename = os.path.basename(file_item.filename)
-    if filename:
-        upload_dir = "/home/myerrou/webserv/upload/"
-        os.makedirs(upload_dir, exist_ok=True)
-        path = os.path.join(upload_dir, filename)
-        try:
-            with open(path, "wb") as f:
-                f.write(file_item.file.read())
-            upload_msg = f"<p class='success'> File <b>{escape(filename)}</b> uploaded successfully!</p>"
-        except Exception as e:
-            upload_msg = f"<p class='error'> Upload failed: {escape(str(e))}</p>"
-
-# --- Server info ---
-server_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-server_software = os.getenv("SERVER_SOFTWARE", "Custom Webserv")
-request_method = os.getenv("REQUEST_METHOD", "N/A")
-
-# --- HTML Output ---
 html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Python CGI | Webserv</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<style>
-    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-    body {{
-        font-family: 'Roboto', sans-serif;
-        background: linear-gradient(135deg, #4b6cb7, #182848);
-        color: #222;
-        padding: 2rem;
-    }}
-    .container {{
-        max-width: 850px;
-        margin: auto;
-        background: #ffffff;
-        border-radius: 15px;
-        padding: 2.5rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-        animation: fadeIn 0.8s ease;
-    }}
-    @keyframes fadeIn {{
-        from {{ opacity: 0; transform: translateY(25px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
-    }}
-    h1 {{
-        text-align: center;
-        background: linear-gradient(90deg, #4b6cb7, #182848);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 2.2rem;
-        margin-bottom: 1rem;
-    }}
-    h2 {{
-        color: #182848;
-        margin-top: 2rem;
-        margin-bottom: 1rem;
-        border-bottom: 2px solid #4b6cb7;
-        display: inline-block;
-        padding-bottom: 4px;
-    }}
-    .info {{
-        background: #f5f7ff;
-        padding: 1rem;
-        border-radius: 10px;
-        margin-bottom: 1.5rem;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
-    }}
-    input[type=text], input[type=file] {{
-        width: 100%;
-        padding: 0.6rem;
-        border: 1px solid #ccc;
-        border-radius: 10px;
-        margin-bottom: 1rem;
-        font-size: 1rem;
-    }}
-    button {{
-        background: linear-gradient(90deg, #4b6cb7, #182848);
-        color: white;
-        padding: 0.6rem 1.2rem;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-    }}
-    button:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }}
-    .success {{
-        color: #1a7f37;
-        font-weight: bold;
-        margin-top: 1rem;
-    }}
-    .error {{
-        color: #b91c1c;
-        font-weight: bold;
-        margin-top: 1rem;
-    }}
-    footer {{
-        text-align: center;
-        margin-top: 2rem;
-        color: #888;
-        font-size: 0.9rem;
-    }}
-</style>
+    <meta charset="UTF-8">
+    <title>Python CGI | Hello</title>
+    <style>
+        body {{
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: radial-gradient(circle at top left, #0d1b2a, #1b263b, #0a192f);
+            color: #e0e6ed;
+            margin: 0;
+            padding: 0;
+        }}
+
+        .container {{
+            max-width: 700px;
+            margin: 80px auto;
+            background: #1b263b;
+            border: 2px solid #3a506b;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            padding: 2rem;
+            animation: fadeIn 0.6s ease;
+        }}
+
+        h1 {{
+            text-align: center;
+            color: #66c0f4;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }}
+
+        p.intro {{
+            text-align: center;
+            color: #b8c7d9;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }}
+
+        hr {{
+            border: none;
+            border-top: 1px solid #3a506b;
+            margin: 1.5rem 0;
+        }}
+
+        h2 {{
+            color: #5dade2;
+            border-left: 4px solid #66c0f4;
+            padding-left: 10px;
+            margin-bottom: 0.8rem;
+        }}
+
+        ul {{
+            list-style-type: none;
+            padding: 0;
+        }}
+
+        li {{
+            background: #0f1e33;
+            border: 1px solid #2e4a68;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 8px 0;
+            transition: all 0.2s ease-in-out;
+        }}
+
+        li b {{
+            color: #66c0f4;
+        }}
+
+        li:hover {{
+            background: #132942;
+            border-color: #66c0f4;
+        }}
+
+        footer {{
+            text-align: center;
+            color: #7a8ca7;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+        }}
+
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(15px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+    </style>
 </head>
 <body>
-<div class="container">
-    <h1>Python CGI Script</h1>
-
-    <section class="info">
-        <p><b>Server Time:</b> {server_time}</p>
-        <p><b>Server Software:</b> {escape(server_software)}</p>
-        <p><b>Request Method:</b> {escape(request_method)}</p>
-    </section>
-
-    <section>
-        <h2>Send a Message</h2>
-        <form method="post">
-            <input type="text" name="message" placeholder="Type your message here...">
-            <button type="submit">Send</button>
-        </form>
-        {f"<p class='success'>You said: <b>{message}</b></p>" if message else ""}
-    </section>
-
-    <section>
-        <h2>Upload a File</h2>
-        <form enctype="multipart/form-data" method="post">
-            <input type="file" name="file">
-            <button type="submit">Upload</button>
-        </form>
-        {upload_msg}
-    </section>
-
-    <footer>Webserv Python CGI © 2025</footer>
-</div>
+    <div class="container">
+        <h1>Hello from Python CGI</h1>
+        <p class="intro">This is a simple CGI script running inside your web server.</p>
+        <hr>
+        <h2>CGI Information</h2>
+        <ul>
+            <li><b>Server Software:</b> {os.getenv("SERVER_SOFTWARE", "Unknown")}</li>
+            <li><b>Request Method:</b> {os.getenv("REQUEST_METHOD", "Unknown")}</li>
+            <li><b>Server Protocol:</b> {os.getenv("SERVER_PROTOCOL", "Unknown")}</li>
+            <li><b>Server Time:</b> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</li>
+        </ul>
+        <footer>Webserv Python CGI © 2025</footer>
+    </div>
 </body>
 </html>
 """

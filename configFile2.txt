@@ -2,11 +2,11 @@ server {
     listen 127.0.0.1:5454;
 
     location / {
-        root /home/myerrou/webserv;
+        root /home/myerrou/medyer;
         index index1.html;
         methods GET POST DELETE;
         autoindex on;
-        upload_store /home/myerrou/webserv/www;
+        upload_store /home/myerrou/medyer/www;
         error_page 403 /errors/403.html;
         error_page 301 /errors/301.html;
         error_page 500 /errors/500.html;
@@ -15,7 +15,7 @@ server {
 
     location /upload {
         root /var/www/youtube/music;
-        upload_store /home/myerrou/webserv/upload;
+        upload_store /home/myerrou/medyer/upload;
         index index1.html;
         methods GET POST DELETE;
         autoindex on;

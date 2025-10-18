@@ -217,10 +217,22 @@ void    Client::handleDirectory(const std::string& path)
         errorResponse(403, "Forbiden serving this directory");
 }
 
-void Client::handleCGI(std::string totalPath)
-{
+void Client::handleCGI(std::string totalPath) 
+{ 
     std::cout << "[CGI] Entered handleCGI() for path: " << totalPath << std::endl;
-
+    if (isDir(totalPath))
+    {
+        const std::vector<std::string>& indexFiles = location->getIndex();
+        if (!indexFiles.empty()) { totalPath += "/" + indexFiles[0];
+            std::cout << "[CGI] Directory requested, using index file: " << totalPath << std::endl;
+        }
+        else
+        {
+            std::cerr << "[CGI] No index file found for directory: " << totalPath << std::endl;
+            errorResponse(403, "Directory listing forbidden or index not found");
+            return;
+        }
+    }
     std::size_t dotPos = totalPath.find_last_of('.');
     if (dotPos == std::string::npos)
     {
@@ -228,12 +240,9 @@ void Client::handleCGI(std::string totalPath)
         errorResponse(400, "Invalid CGI path: missing extension");
         return;
     }
-
     std::string ext = totalPath.substr(dotPos);
     std::cout << "[CGI] Detected file extension: " << ext << std::endl;
-
     const std::map<std::string, std::string>& cgiMap = location->getCgi();
-
     std::map<std::string, std::string>::const_iterator it = cgiMap.find(ext);
     if (it == cgiMap.end())
     {
@@ -241,57 +250,54 @@ void Client::handleCGI(std::string totalPath)
         errorResponse(500, "Unsupported CGI extension");
         return;
     }
-
     const std::string& interpreter = it->second;
     std::cout << "[CGI] Using interpreter: " << interpreter << std::endl;
-
     try
     {
         std::string output = executeCGI(totalPath, interpreter);
-        std::cout << "[CGI] CGI executed successfully, output length: " 
-                  << output.size() << " bytes" << std::endl;
-
+        std::cout << "[CGI] CGI executed successfully, output length: " << output.size() << " bytes" << std::endl;
         handleCGIResponse(output);
     }
-    catch (const std::exception& e)
+    catch(const std::exception& e)
     {
         std::cerr << "[CGI] Exception while executing CGI: " << e.what() << std::endl;
         errorResponse(500, e.what());
     }
 }
 
+
 void Client::handleGET()
 {
 	location = findMathLocation(currentRequest->getPath());
-	if (!location)
-	{
-		errorResponse(404, "Not Found");
-		return;
-	}
-	if (location->hasRedir())
-	{
-		handleRedirection();
-		return;
-	}
-	if (location->getRoot().empty())
-	{
-		errorResponse(500, "Missing root directive");
-		return;
-	}
-	std::string totalPath = joinPath();
-    if (totalPath.find("cgi-bin/") != std::string::npos)
+    std::string totalPath = joinPath();
+    if (!location->getCgi().empty())
     {
         handleCGI(totalPath);
         return;
     }
+	if (!location)
+	{
+        errorResponse(404, "Not Found");
+		return;
+	}
+	if (location->hasRedir())
+	{
+        handleRedirection();
+		return;
+	}
+	if (location->getRoot().empty())
+	{
+        errorResponse(500, "Missing root directive");
+		return;
+	}
 	if (isDir(totalPath))
 	{
-		handleDirectory(totalPath);
+        handleDirectory(totalPath);
 		return;
 	}
 	if (isFile(totalPath))
 	{
-		handleFile(totalPath);
+        handleFile(totalPath);
 		return;
 	}
 	errorResponse(404, "Not Found");
@@ -536,7 +542,7 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
 	if (headers.find("Content-Length") != headers.end())
 		env.push_back("CONTENT_LENGTH=" + headers["Content-Length"]);
 
-	env.push_back("SERVER_SOFTWARE=webserv/1.0");
+	env.push_back("SERVER_SOFTWARE=medyer/1.0");
 	env.push_back("REDIRECT_STATUS=200");
 
 	return env;
