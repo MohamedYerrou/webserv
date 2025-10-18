@@ -1,4 +1,4 @@
-NAME = medyer
+NAME = server
 
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98

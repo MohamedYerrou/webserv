@@ -542,7 +542,7 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
 	if (headers.find("Content-Length") != headers.end())
 		env.push_back("CONTENT_LENGTH=" + headers["Content-Length"]);
 
-	env.push_back("SERVER_SOFTWARE=medyer/1.0");
+	env.push_back("SERVER_SOFTWARE=server/1.0");
 	env.push_back("REDIRECT_STATUS=200");
 
 	return env;
