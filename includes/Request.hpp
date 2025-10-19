@@ -49,7 +49,8 @@ class Request
 		void										splitUri(const std::string& str);
 		void										parseQuery(const std::string& query);
 		void										appendBody(const char* buf, size_t length);
-		void										generateTmpFile(const std::string& target_path);
+		void										generateTmpFile(const std::string& target_path, const std::string& file);
+		void										closeFileUpload();
 };
 
 #endif

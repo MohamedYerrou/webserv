@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <csignal>
 #include "../includes/Server.hpp"
 #include "../includes/Client.hpp"
 #include "../includes/Utils.hpp"
@@ -84,6 +85,7 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		client->handleFile();
 		Response& currentResponse = client->getResponse();
 		std::string res = currentResponse.build();
+		std::cout << "Building res: " << res << std::endl;
 		ssize_t sent = send(fd, res.c_str(), res.length(), 0);
 		if (sent == -1)
 		{
@@ -104,7 +106,6 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 }
 
-
 void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
 	struct epoll_event events[64];
@@ -115,7 +116,11 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 		int nfds = epoll_wait(epfd, events, 64, -1);
 		if (nfds == -1)
 			throw_exception("epoll_wait: ", strerror(errno));
-
+		// if (nfds == 0)
+		// {
+		// 	std::cout << "REQUESTING TIMEOUT..." << std::endl;
+		// 	return;
+		// }
 
 		for (int i = 0; i < nfds; i++)
 		{
@@ -125,33 +130,7 @@ void	run_server(int epfd, std::map<int, Server*>& servers_fd)
 			else if (events[i].events & EPOLLIN)
 				handleClientRequest(epfd, fd, clients);
 			else if (events[i].events & EPOLLOUT)
-			{
 				handleClientResponse(epfd, fd, clients);
-				// Client* client = clients[fd];
-				// if (!client->getSentAll())
-				// {
-				// 	client->handleFile();
-				// 	Response& currentResponse = client->getResponse();
-				// 	std::string res = currentResponse.build();
-				// 	ssize_t sent = send(fd, res.c_str(), res.length(), 0);
-				// 	if (sent == -1)
-				// 	{
-				// 		std::cout << "Sent Error: " << strerror(errno) << std::endl;
-				// 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-				// 		delete client;
-				// 		clients.erase(fd);
-				// 		close(fd);
-				// 	}
-				// }
-				// else
-				// {
-				// 	std::cout << "Response has been sent" << std::endl;
-				// 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-				// 	delete client;
-				// 	clients.erase(fd);
-				// 	close(fd);
-				// }
-			}
 		}
 	}
 }
