@@ -270,9 +270,14 @@ void    Client::handleHeaders(const std::string& raw)
         currentRequest->parseRequest(raw);
         // parsedRequest(*currentRequest);
         bodySize = currentRequest->getContentLength();
-        if (bodySize > currentServer->getMaxSize())
+        // if (bodySize > currentServer->getMaxSize())
+        // {
+        //     errorResponse(413, "Payload Too Large");
+        //     reqComplete = true;
+        // }
+        if (bodySize == 0 && currentRequest->getMethod() == "POST")
         {
-            errorResponse(413, "Payload Too Large");
+            errorResponse(411, "Length Required");
             reqComplete = true;
         }
         else if (bodySize > 0 && currentRequest->getMethod() == "POST")
@@ -299,22 +304,32 @@ void    Client::handleBody(const char* buf, ssize_t length)
         if (inBody && !finishBody)
         {
             body.append(buf, toAppend);
+            if (body.find(endBoundry) != std::string::npos)
+            {
+                // std::cout << "BODY FINISHED" << std::endl;
+                std::string leftPart = body.substr(0, body.find(endBoundry));
+                currentRequest->appendBody(leftPart.c_str(), leftPart.length());
+                body.erase(0, body.find(endBoundry));
+                finishBody = true;
+            }
             std::size_t nextBoundary = body.find(boundary);
             if (nextBoundary != std::string::npos)
             {
                 std::string firstPart = body.substr(0, nextBoundary);
                 currentRequest->appendBody(firstPart.c_str(), firstPart.length());
-                body = body.substr(nextBoundary);
+                // body.erase(0, nextBoundary);
                 inBody = false;
                 currentRequest->closeFileUpload();
             }
             else
-                currentRequest->appendBody(buf, toAppend);
-            if (body.find(endBoundry) != std::string::npos)
             {
-                std::cout << "BODY FINISHED" << std::endl;
-                finishBody = true;
-                body.clear();
+                size_t safeZone = body.length() - boundary.length();
+                if (safeZone > 0)
+                {
+                    std::string safePart = body.substr(0, safeZone);
+                    currentRequest->appendBody(safePart.c_str(), safePart.length());
+                    body.erase(0, safeZone);
+                }
             }
         }
         else
@@ -326,7 +341,7 @@ void    Client::handleBody(const char* buf, ssize_t length)
                 inBody = true;
                 endBodyHeaders += 4;
                 std::string bodyStart = body.substr(endBodyHeaders);
-                body.erase(0, boundary.length());
+                // body.erase(0, boundary.length());
                 std::size_t pos = body.find("filename=");
                 if (pos != std::string::npos)
                 {
@@ -335,6 +350,7 @@ void    Client::handleBody(const char* buf, ssize_t length)
                     if (nextPos == std::string::npos)
                         return;
                     std::string filename = body.substr(pos, nextPos - pos - 1);
+                    std::cout << "FILENAME: " << filename << std::endl;
                     std::string target_path = constructFilePath(currentRequest->getPath());
                     if (target_path.empty() && reqComplete)
                         return;
@@ -350,6 +366,7 @@ void    Client::handleBody(const char* buf, ssize_t length)
                     currentRequest->generateTmpFile(target_path, "");
                     currentRequest->appendBody(bodyStart.c_str(), bodyStart.length());
                 }
+                body.clear();
             }
         }
     }

@@ -267,13 +267,13 @@ void    Request::generateTmpFile(const std::string& target_path, const std::stri
 
     std::map<std::string, std::string>::iterator it = queries.find("filename");
 
-    if (it != queries.end())
-        fileName = target_path + "/" + it->second;
-    else if (!file.empty())
+    if (!file.empty())
     {
         fileName = target_path + "/" + file;
-        std::cout << "FULL FILE NAME: " << fileName << std::endl;
+        // std::cout << "FULL FILE NAME: " << fileName << std::endl;
     }
+    else if (it != queries.end())
+        fileName = target_path + "/" + it->second;
     else
     {
         sprintf(fileNumber, "%ld", time(NULL));
