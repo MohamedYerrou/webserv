@@ -1,10 +1,10 @@
 NAME = webserv
 
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -fsanitize=address -g -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -fsanitize=address -g3 -std=c++98
 
 SRC = main.cpp \
-	srcs/Cgi.cpp \
+	srcs/CGIHandler.cpp \
 	srcs/Client.cpp \
 	srcs/Server.cpp \
 	srcs/Location.cpp \

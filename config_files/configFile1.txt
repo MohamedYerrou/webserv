@@ -29,7 +29,7 @@ server {
     location /cgi {
         root /home/myerrou/server/cgi-bin;
         index test.py;
-        methods GET POST DELETE;
+        methods GET POST;
         autoindex on;
         cgi .php /usr/bin/php-cgi;
         cgi .py /usr/bin/python3;

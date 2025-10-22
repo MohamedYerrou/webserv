@@ -1,7 +1,19 @@
 #include "../includes/Client.hpp"
 
 Client::Client(int fd, Server* srv)
-    : fd(fd), endHeaders(false), reqComplete(false), hasBody(false), requestError(false), currentRequest(NULL), currentServer(srv), location(NULL)
+    : fd(fd),
+      bodySize(0),
+      endHeaders(false),
+      reqComplete(false),
+      hasBody(false),
+      requestError(false),
+      currentRequest(NULL),
+      currentServer(srv),
+      location(NULL),
+      sentAll(false),
+      fileOpened(false),
+      cgiHandler(NULL),
+      isCGI(false)
 {
     bodySize = 0;
     sentAll = false;
@@ -14,6 +26,11 @@ Client::~Client()
         fileStream.close();
     if (currentRequest != NULL)
         delete currentRequest;
+    if (cgiHandler != NULL)
+    {
+        delete cgiHandler;
+        cgiHandler = NULL;
+    }
 }
 
 int Client::getFD() const
@@ -145,31 +162,28 @@ const Location*   Client::findMathLocation(std::string url)
     return currentLocation;
 }
 
-// void    Client::handlePost()
-// {
-//     std::string		Content_type = (currentRequest->getHeaders())["Content-Type"];
-//     std::fstream	body("testfile", std::ios::in);
-//     std::string		line;
-
-//     if (Content_type == "text/plain")
-//         return ;
-//     else if (Content_type == "multipart/form-data")
-//         return ;
-//     else if (Content_type == "application/x-www-form-urlencoded")
-//         return ;
-// }
-
-void    Client::handleCompleteRequest()
+std::string getExtension(const std::string& path)
 {
+    size_t dot_pos = path.rfind('.');
+    if (dot_pos == std::string::npos)
+        return "";
+    size_t slash_pos = path.rfind('/');
+    if (slash_pos != std::string::npos && slash_pos > dot_pos)
+        return "";
+    return path.substr(dot_pos);
+}
+
+void Client::handleCompleteRequest()
+{
+
+    std::cout << "--------- entered handleCompleteRequest-------------" << std::endl;
+    checkCGIValid();
     if (currentRequest->getMethod() == "GET")
         handleGET();
     else if (currentRequest->getMethod() == "DELETE")
         handleDELETE();
-    else
-    {
-        //TODO: handle post method
-    }
 }
+
 
 void    Client::errorResponse(int code, const std::string& error)
 {

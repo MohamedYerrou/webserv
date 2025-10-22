@@ -129,12 +129,7 @@ void    Client::handleGET()
             return;
         }
         std::string totalPath = joinPath();
-        if (!location->getCgi().empty())
-        {
-            handleCGI(totalPath);
-            return;
-        }
-        else if (isDir(totalPath))
+        if (isDir(totalPath))
             handleDirectory(totalPath);
         else if (isFile(totalPath))
             PrepareResponse(totalPath);

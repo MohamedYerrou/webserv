@@ -6,9 +6,13 @@
 #include <unistd.h>
 #include "Request.hpp"
 #include "Response.hpp"
+#include "CGIHandler.hpp"
 #include "Server.hpp"
 #include "Location.hpp"
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/wait.h>
 #include "Utils.hpp"
 #include <algorithm>
@@ -33,6 +37,11 @@ class Client
 		Response		currentResponse;
 		bool			sentAll;
 		bool			fileOpened;
+
+		CGIHandler* cgiHandler;
+		bool		isCGI;
+		std::string newPath;
+
 	public:
 		Client(int fd, Server* srv);
 		~Client();
@@ -70,10 +79,21 @@ class Client
 
 		
 		//Cgi added by mohamed
-		std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
+		// std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
 		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
-		void 					 handleCGIResponse(const std::string& cgiOutput);
-		void					 handleCGI(std::string totalPath);
+		// void 					 handleCGIResponse(const std::string& cgiOutput);
+		void	checkCGIValid();
+		void 					 handleCGI();
+		bool					 getIsCGI() const { return isCGI; }
+		void 					 setIsCGI(bool val) {isCGI = val; }
+		void cleanupCGI()
+		{
+			if (cgiHandler)
+			{
+				delete cgiHandler;
+				cgiHandler = NULL;
+			}
+		}
 };
 
 #endif

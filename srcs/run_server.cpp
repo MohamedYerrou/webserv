@@ -104,54 +104,86 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 }
 
-
-void	run_server(int epfd, std::map<int, Server*>& servers_fd)
+void run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
-	struct epoll_event events[64];
-	std::map<int, Client*> clients;
+    struct epoll_event events[64];
+    std::map<int, Client*> clients;
 
-	while (true)
-	{
-		int nfds = epoll_wait(epfd, events, 64, -1);
-		if (nfds == -1)
-			throw_exception("epoll_wait: ", strerror(errno));
+    while (true)
+    {
+        int nfds = epoll_wait(epfd, events, 64, -1);
+        if (nfds == -1)
+            throw_exception("epoll_wait: ", strerror(errno));
 
+        for (int i = 0; i < nfds; i++)
+        {
+            int fd = events[i].data.fd;
 
-		for (int i = 0; i < nfds; i++)
-		{
-			int fd = events[i].data.fd;
-			if (listening_fd(servers_fd, fd))
-				handleListeningClient(epfd, fd, clients, servers_fd);
-			else if (events[i].events & EPOLLIN)
-				handleClientRequest(epfd, fd, clients);
-			else if (events[i].events & EPOLLOUT)
-			{
-				handleClientResponse(epfd, fd, clients);
-				// Client* client = clients[fd];
-				// if (!client->getSentAll())
-				// {
-				// 	client->handleFile();
-				// 	Response& currentResponse = client->getResponse();
-				// 	std::string res = currentResponse.build();
-				// 	ssize_t sent = send(fd, res.c_str(), res.length(), 0);
-				// 	if (sent == -1)
-				// 	{
-				// 		std::cout << "Sent Error: " << strerror(errno) << std::endl;
-				// 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-				// 		delete client;
-				// 		clients.erase(fd);
-				// 		close(fd);
-				// 	}
-				// }
-				// else
-				// {
-				// 	std::cout << "Response has been sent" << std::endl;
-				// 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-				// 	delete client;
-				// 	clients.erase(fd);
-				// 	close(fd);
-				// }
-			}
-		}
-	}
+            // New connection
+            if (listening_fd(servers_fd, fd))
+            {
+                handleListeningClient(epfd, fd, clients, servers_fd);
+                continue;
+            }
+
+            Client* client = clients[fd];
+
+            // Readable socket
+            if (events[i].events & EPOLLIN)
+            {
+                char buf[4096];
+                ssize_t received = recv(fd, buf, sizeof(buf) - 1, 0);
+
+                if (received <= 0)
+                {
+                    // Connection closed or error
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+                    delete client;
+                    clients.erase(fd);
+                    close(fd);
+                    continue;
+                }
+
+                buf[received] = '\0';
+                client->appendData(buf, received);
+
+                if (client->getReqComplete())
+                {
+                    if (!client->getRequestError())
+                        client->handleCompleteRequest();
+
+                    // Switch to EPOLLOUT to send response or handle CGI
+                    struct epoll_event ev;
+                    ev.events = EPOLLOUT;
+                    ev.data.fd = fd;
+                    epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
+                }
+            }
+
+            // Writable socket
+            if (events[i].events & EPOLLOUT)
+            {
+                std::cout << "*********11111111111**********" << std::endl;
+                if (client->getIsCGI())
+                {
+                    std::cout << "*********2222222222**********" << std::endl;
+                    client->handleCGI();
+                    if (client->getSentAll())
+                    {
+                        std::cout << "*********33333333333**********" << std::endl;
+						client->cleanupCGI();
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+                        delete client;
+                        clients.erase(fd);
+                        close(fd);
+                    }
+                }
+                else
+                {
+                    std::cout << "*********55555555555**********" << std::endl;
+                    handleClientResponse(epfd, fd, clients);
+                }
+            }
+        }
+    }
 }
