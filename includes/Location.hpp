@@ -49,7 +49,6 @@ public:
 	//added by mohamed
 	const std::map<std::string, std::string>& getCgi() const { return _cgi; }
 
-
 };
 
 #endif
