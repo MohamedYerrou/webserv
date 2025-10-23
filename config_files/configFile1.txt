@@ -26,7 +26,7 @@ server {
 
     location /cgi {
         root /home/myerrou/test/cgi-bin;
-        index test.333p test.py test.ppp;
+        index test.py;
         methods GET POST;
         autoindex on;
         cgi .php /usr/bin/php-cgi;
