@@ -26,6 +26,7 @@ class Client
 		int				fd;
 		std::ifstream	fileStream;
 		std::string 	headers;
+		std::string		body;
 		size_t			bodySize;
 		bool			endHeaders;
 		bool			reqComplete;
@@ -37,6 +38,11 @@ class Client
 		Response		currentResponse;
 		bool			sentAll;
 		bool			fileOpened;
+		bool			oneBody;
+		std::string		boundary;
+		std::string		endBoundry;
+		bool			inBody;
+		bool			finishBody;
 
 		CGIHandler* cgiHandler;
 		bool		isCGI;
@@ -59,6 +65,7 @@ class Client
 		bool				getRequestError() const;
 		bool				getSentAll() const;
 		void				setSentAll(bool flag);
+		bool    			getContentType();
 		
 		//handle methods
 		const Location*	findMathLocation(std::string url);

@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <csignal>
 #include "../includes/Server.hpp"
 #include "../includes/Client.hpp"
 #include "../includes/Utils.hpp"
@@ -37,7 +38,7 @@ void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, st
 
 void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 {
-	char	buf[30];
+	char	buf[3000];
 	Client* clientPtr = clients[fd];
 
 	ssize_t received = recv(clientPtr->getFD(), buf, sizeof(buf) - 1, 0);
@@ -84,6 +85,7 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		client->handleFile();
 		Response& currentResponse = client->getResponse();
 		std::string res = currentResponse.build();
+		// std::cout << "Building res: " << res << std::endl;
 		ssize_t sent = send(fd, res.c_str(), res.length(), 0);
 		if (sent == -1)
 		{

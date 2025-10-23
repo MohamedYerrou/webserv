@@ -134,6 +134,9 @@ std::string getStatusText(int code)
         case 411:
             text = "Length Required";
             break;
+        case 413:
+            text = "Payload Too Large";
+            break;
         case 414:
             text = "URI Too Long";
             break;

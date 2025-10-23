@@ -22,8 +22,6 @@ server {
         index html_files/index1.html;
         methods GET POST DELETE;
         autoindex on;
-        
-        
     }
 
     location /cgi {
