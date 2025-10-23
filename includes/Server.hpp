@@ -22,7 +22,6 @@ class Server
 	void							push_location(Location);
 	void							init_server(int epfd, std::map<int, Server*>& fd_vect);
 	const std::vector<Location>&	getLocations() const;
-	size_t							getMaxSize() const;
 };
 
 #endif

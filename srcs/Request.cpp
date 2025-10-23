@@ -44,11 +44,6 @@ const std::map<std::string, std::string>& Request::getQueries() const
     return queries;
 }
 
-void										Request::closeFileUpload()
-{
-    close(uploadFile);
-}
-
 size_t  Request::getContentLength() const
 {
     std::map<std::string, std::string>::const_iterator it = headers.find("content-length");
@@ -260,19 +255,14 @@ void    Request::parseHeaders(const std::string& raw)
     }
 }
 
-void    Request::generateTmpFile(const std::string& target_path, const std::string& file)
+void    Request::generateTmpFile(const std::string& target_path)
 {
     char		fileNumber[15];
     std::string fileName;
 
     std::map<std::string, std::string>::iterator it = queries.find("filename");
 
-    if (!file.empty())
-    {
-        fileName = target_path + "/" + file;
-        // std::cout << "FULL FILE NAME: " << fileName << std::endl;
-    }
-    else if (it != queries.end())
+    if (it != queries.end())
         fileName = target_path + "/" + it->second;
     else
     {

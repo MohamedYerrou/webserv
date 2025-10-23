@@ -1,7 +1,6 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-
 #include <string>
 #include <iostream>
 #include <unistd.h>
@@ -27,7 +26,6 @@ class Client
 		int				fd;
 		std::ifstream	fileStream;
 		std::string 	headers;
-		std::string		body;
 		size_t			bodySize;
 		bool			endHeaders;
 		bool			reqComplete;
@@ -39,12 +37,7 @@ class Client
 		Response		currentResponse;
 		bool			sentAll;
 		bool			fileOpened;
-		bool			oneBody;
-		std::string		boundary;
-		std::string		endBoundry;
-		bool			inBody;
-		bool			finishBody;
-		// added by mohamed
+
 		CGIHandler* cgiHandler;
 		bool		isCGI;
 		std::string newPath;
@@ -66,7 +59,6 @@ class Client
 		bool				getRequestError() const;
 		bool				getSentAll() const;
 		void				setSentAll(bool flag);
-		bool    			getContentType();
 		
 		//handle methods
 		const Location*	findMathLocation(std::string url);
@@ -85,8 +77,11 @@ class Client
 		std::string		constructFilePath(std::string uri);
 		void    		PrepareResponse(const std::string& path);
 
-		//added by mohamed
+		
+		//Cgi added by mohamed
+		// std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
 		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
+		// void 					 handleCGIResponse(const std::string& cgiOutput);
 		void	checkCGIValid();
 		void 					 handleCGI();
 		bool					 getIsCGI() const { return isCGI; }

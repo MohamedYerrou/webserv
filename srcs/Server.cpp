@@ -37,11 +37,6 @@ void    Server::push_location(Location location)
     locations.push_back(location);
 }
 
-size_t							Server::getMaxSize() const
-{
-	return client_max_body_size;
-}
-
 void    Server::init_server(int epfd, std::map<int, Server*>& server_fd)
 {
     for (size_t i = 0; i < listens.size(); i++)

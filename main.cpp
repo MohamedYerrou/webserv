@@ -174,8 +174,6 @@ int main(int ac, char** av)
 
 	try
 	{
-
-
 		tokenizer(tokens, (ac != 2 ? "config_files/configFile1.txt" : av[1]));
 		servers = parser(tokens);
 		int epfd = epoll_create(1);

@@ -289,9 +289,8 @@ void    Client::checkCGIValid()
                     {
                         setIsCGI(true);
                         indexFound = 1;
-                        std::cout << "hello [INDEX] Found index file: " << newPath << std::endl;
                         break;
-                    }    
+                    }
                 }
                 if (indexFound == 1)
                 {
@@ -302,8 +301,7 @@ void    Client::checkCGIValid()
                 {
                     if (location->getAutoIndex())
                     {
-                        std::cout << "MUST HANDLE LISTING DIRECTORY" << std::endl;
-                        std::cout << "newPath ==============>" << newPath <<std::endl;
+                        std::cout << "LISTING DIRECTORY" << std::endl;
                         listingDirectory(newPath);
                     }
                     else
@@ -315,8 +313,7 @@ void    Client::checkCGIValid()
             }
             else if (location->getAutoIndex())
             {
-                std::cout << "MUST HANDLE LISTING DIRECTORY" << std::endl;
-                std::cout << "newPath ==============>" << newPath <<std::endl;
+                std::cout << "LISTING DIRECTORY" << std::endl;
                 listingDirectory(newPath);
             }
             else
