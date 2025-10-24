@@ -252,104 +252,127 @@ void CGIHandler::readOutput()
     }
 }
 
-void    Client::checkCGIValid()
+void Client::checkCGIValid()
 {
-    
+    // 1. Resolve Location and Physical Path
     location = findMathLocation(currentRequest->getPath());
-
     newPath = joinPath();
-    std::cout << "newPath==============================>" << newPath << std::endl;
-    const std::vector<std::string>& indexMethod = location->getMethod();
-    bool isMethod = false;
-    for (size_t i = 0; i < indexMethod.size(); ++i)
-        {
-            if (indexMethod[i] == "GET" || indexMethod[i] == "POST")
-            {
-                isMethod = true;
-                break;
-            }
-        }    
-    if (!location->getCgi().empty() && (currentRequest->getMethod() == "GET" || currentRequest->getMethod() == "POST")
-        && (isMethod))
+
+    // 2. Check Request Method Authorization (Nginx uses 405 Method Not Allowed)
+    const std::vector<std::string>& allowedMethods = location->getMethod();
+    const std::string& requestMethod = currentRequest->getMethod();
+    bool methodAllowed = false;
+
+    for (size_t i = 0; i < allowedMethods.size(); ++i)
     {
-        std::size_t dotPos = newPath.find_last_of('.');
-        if (isDir(newPath))
+        if (allowedMethods[i] == requestMethod)
         {
-            //TODO loop indexes
-            const std::vector<std::string>& indexFiles = location->getIndex();
-            if (!indexFiles.empty())
-            {
-                bool indexFound = false;
-
-                // Try to serve an index file (like index.html or index.py)
-                for (size_t i = 0; i < indexFiles.size(); ++i)
-                {
-                    newPath = newPath + "/" + indexFiles[i];
-                    if (isFile(newPath))
-                    {
-                        setIsCGI(true);
-                        indexFound = 1;
-                        break;
-                    }
-                }
-                if (indexFound == 1)
-                {
-                    std::cout << "indexFound==============" << indexFound << std::endl;
-                    setIsCGI(true);
-                }
-                else if (!indexFound)
-                {
-                    if (location->getAutoIndex())
-                    {
-                        std::cout << "LISTING DIRECTORY" << std::endl;
-                        listingDirectory(newPath);
-                    }
-                    else
-                    {
-                        std::cout << "[CGI] No index file found for directory: " << newPath << std::endl;
-                        errorResponse(403, "Forbidden");
-                    }
-                }
-            }
-            else if (location->getAutoIndex())
-            {
-                std::cout << "LISTING DIRECTORY" << std::endl;
-                listingDirectory(newPath);
-            }
-            else
-            {
-                // setIsCGI(false);
-                std::cout << "[CGI] No index file found for directory: " << newPath << std::endl;
-                errorResponse(403, "Forbidden");
-            }
-
+            methodAllowed = true;
+            break;
         }
-        else if (isFile(newPath))
+    }
+
+    if (!methodAllowed)
+    {
+        std::cerr << "[CGI Check] Method " << requestMethod << " not allowed for path: " << currentRequest->getPath() << std::endl;
+        return errorResponse(405, "Method Not Allowed");
+    }
+
+    // 3. Determine if CGI processing is configured at all for this location
+    const std::map<std::string, std::string>& cgiMap = location->getCgi();
+    bool cgiConfigured = !cgiMap.empty();
+
+    // 4. Handle Path Resolution: Directory vs. File
+
+    if (isDir(newPath))
+    {
+        // Path points to a directory. Look for index files (Nginx-like behavior).
+        const std::vector<std::string>& indexFiles = location->getIndex();
+        bool indexFound = false;
+        std::string originalPath = newPath;
+
+        if (!indexFiles.empty())
         {
-            if (dotPos == std::string::npos)
+            // Ensure directory path ends with a slash for proper index file joining
+            if (originalPath.length() > 0 && originalPath[originalPath.length() - 1] != '/')
             {
-                // setIsCGI(false);
-                std::cerr << "[CGI] No file extension found in path: " << newPath << std::endl;
-                errorResponse(400, "Invalid CGI path: missing extension");
+                originalPath += "/";
             }
-            std::string ext = newPath.substr(dotPos);
-            std::map<std::string, std::string>::const_iterator it = location->getCgi().find(ext);
 
-            bool isCgiFile = (it != location->getCgi().end());
-
-            if (isCgiFile)
+            for (size_t i = 0; i < indexFiles.size(); ++i)
             {
-                setIsCGI(true);
-                std::cout << "[CGI] Interpreter found for " << ext
-                        << ": " << it->second << std::endl;
+                std::string indexPath = originalPath + indexFiles[i];
+
+                if (isFile(indexPath))
+                {
+                    newPath = indexPath; // Update newPath to the actual index file path
+                    indexFound = true;
+                    break;
+                }
+            }
+        }
+
+        if (indexFound)
+        {
+            // Successfully resolved a file (index file). Fall through to File Handling (step 5).
+        }
+        else // No index file found
+        {
+            if (location->getAutoIndex())
+            {
+                std::cout << "[CGI Check] Listing directory (Autoindex ON): " << newPath << std::endl;
+                return listingDirectory(newPath);
             }
             else
             {
-                setIsCGI(false);
-                std::cout << "[STATIC] Serving static file: " << newPath << std::endl;
+                std::cerr << "[CGI Check] Index file not found and autoindex is OFF: " << newPath << std::endl;
+                // Nginx returns 403 Forbidden when an index is missing and autoindex is off.
+                return errorResponse(403, "Forbidden: Directory listing denied");
             }
         }
     }
-    else
-        errorResponse(400, "Method not allowed");
+    else if (!isFile(newPath))
+    {
+        // Path is neither a directory nor a file.
+        std::cerr << "[CGI Check] Resource not found: " << newPath << std::endl;
+        return errorResponse(404, "Not Found");
+    }
+
+    // 5. File Handling (Reached here if newPath is confirmed to be a regular file)
+
+    if (cgiConfigured)
+    {
+        std::size_t dotPos = newPath.find_last_of('.');
+
+        if (dotPos != std::string::npos)
+        {
+            std::string ext = newPath.substr(dotPos);
+            std::map<std::string, std::string>::const_iterator it = cgiMap.find(ext);
+
+            if (it != cgiMap.end())
+            {
+                // File extension matches a configured CGI interpreter
+                
+                // CRITICAL NGINX-LIKE CHECK: Ensure the file is executable (X_OK).
+                // Prevents execve failure loop and returns 403, not 500.
+                if (access(newPath.c_str(), X_OK) == 0)
+                {
+                    setIsCGI(true);
+                    std::cout << "[CGI Check] Serving CGI script with interpreter: " << it->second << " for path: " << newPath << std::endl;
+                    return; // CGI processing flagged.
+                }
+                else
+                {
+                    std::cerr << "[CGI Check] Matched CGI extension '" << ext << "' but script is not executable (403): " << newPath << std::endl;
+                    return errorResponse(403, "Forbidden: CGI script is not executable or invalid.");
+                }
+            }
+        }
+    }
+
+    // 6. Default to Static File (Final Fallback)
+    // If we reach this point, the resource is a file, but it did not match any CGI rules.
+    setIsCGI(false);
+    std::cout << "[CGI Check] Serving static file: " << newPath << std::endl;
+
 }
