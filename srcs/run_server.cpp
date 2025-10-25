@@ -132,6 +132,7 @@ void run_server(int epfd, std::map<int, Server*>& servers_fd)
             {
                 if (client->getIsCGI())
                 {
+					// to check on hanging and several other stuff
                     client->handleCGI();
                     if (client->getSentAll())
                     {

@@ -110,7 +110,6 @@ void    Client::handleDirectory(const std::string& path)
 
 void    Client::handleGET()
 {
-    location = findMathLocation(currentRequest->getPath());
     if (location)
     {
         if (!allowedMethod("GET"))

@@ -210,9 +210,10 @@ std::string getExtension(const std::string& path)
 
 void Client::handleCompleteRequest()
 {
-
-    std::cout << "--------- entered handleCompleteRequest-------------" << std::endl;
-    checkCGIValid();
+    location = findMathLocation(currentRequest->getPath());
+    newPath = joinPath();
+    if (location->getPATH() == "/cgi")
+        checkCGIValid();
     if (currentRequest->getMethod() == "GET")
         handleGET();
     else if (currentRequest->getMethod() == "DELETE")

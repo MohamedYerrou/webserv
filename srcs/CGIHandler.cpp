@@ -240,7 +240,9 @@ void CGIHandler::readOutput()
             break;
         }
         else {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // to fix no check on errno afater read or write
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
                 break;
             } else {
                 finished = true;
@@ -254,11 +256,7 @@ void CGIHandler::readOutput()
 
 void Client::checkCGIValid()
 {
-    // 1. Resolve Location and Physical Path
-    location = findMathLocation(currentRequest->getPath());
-    newPath = joinPath();
-
-    // 2. Check Request Method Authorization (Nginx uses 405 Method Not Allowed)
+    // 1. Check Request Method Authorization (Nginx uses 405 Method Not Allowed)
     const std::vector<std::string>& allowedMethods = location->getMethod();
     const std::string& requestMethod = currentRequest->getMethod();
     bool methodAllowed = false;
@@ -278,11 +276,11 @@ void Client::checkCGIValid()
         return errorResponse(405, "Method Not Allowed");
     }
 
-    // 3. Determine if CGI processing is configured at all for this location
+    // 2. Determine if CGI processing is configured at all for this location
     const std::map<std::string, std::string>& cgiMap = location->getCgi();
     bool cgiConfigured = !cgiMap.empty();
 
-    // 4. Handle Path Resolution: Directory vs. File
+    // 3. Handle Path Resolution: Directory vs. File
 
     if (isDir(newPath))
     {
@@ -312,11 +310,7 @@ void Client::checkCGIValid()
             }
         }
 
-        if (indexFound)
-        {
-            // Successfully resolved a file (index file). Fall through to File Handling (step 5).
-        }
-        else // No index file found
+        if (!indexFound)
         {
             if (location->getAutoIndex())
             {
@@ -338,7 +332,7 @@ void Client::checkCGIValid()
         return errorResponse(404, "Not Found");
     }
 
-    // 5. File Handling (Reached here if newPath is confirmed to be a regular file)
+    // 4. File Handling (Reached here if newPath is confirmed to be a regular file)
 
     if (cgiConfigured)
     {
@@ -370,7 +364,7 @@ void Client::checkCGIValid()
         }
     }
 
-    // 6. Default to Static File (Final Fallback)
+    // 5. Default to Static File (Final Fallback)
     // If we reach this point, the resource is a file, but it did not match any CGI rules.
     setIsCGI(false);
     std::cout << "[CGI Check] Serving static file: " << newPath << std::endl;

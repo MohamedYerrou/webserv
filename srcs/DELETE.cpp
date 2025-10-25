@@ -40,7 +40,6 @@ void    Client::handleDeleteFile(std::string totalPath)
 
 void    Client::handleDELETE()
 {
-    location = findMathLocation(currentRequest->getPath());
     if (location)
     {
         if (!allowedMethod("DELETE"))

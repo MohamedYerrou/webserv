@@ -1,13 +1,14 @@
 server {
     listen 127.0.0.11:8080;
     listen 127.0.0.13:4242;
+    //url: /cgi/index.html
 
     location / {
-        root /home/myerrou/webserv;
-        index html_files/index1.html;
+        root /home/myerrou/medyer;
+        index index1.html;
         methods GET POST DELETE;
         autoindex on;
-        upload_store /home/myerrou/webserv/www;
+        upload_store /home/myerrou/medyer/www;
         error_page 403 /errors/403.html;
         error_page 404 /errors/404.html;
         error_page 405 /errors/405.html;
@@ -18,15 +19,15 @@ server {
 
     location /upload {
         root /var/www/youtube/music;
-        upload_store /home/myerrou/webserv/upload;
-        index html_files/index1.html;
+        upload_store /home/myerrou/medyer/upload;
+        index index1.html;
         methods GET POST DELETE;
         autoindex on;
     }
 
     location /cgi {
-        root /home/myerrou/webserv/cgi-bin;
-        index ;
+        root /home/myerrou/medyer/cgi-bin;
+        index index.py index1.py;
         methods GET POST;
         autoindex off;
         cgi .php /usr/bin/php-cgi;
@@ -38,7 +39,7 @@ server {
 server {
     listen 31.84.569.4:9194;
     root /var/www/google;
-    index html_files/index1.html;
+    index index1.html;
     error_page 302 /errors/302.html;
     error_page 500 /errors/500.html;
 
