@@ -224,34 +224,57 @@ void CGIHandler::startCGI(const std::string& scriptPath, const std::map<std::str
 
 void CGIHandler::readOutput()
 {
-    if (!started || finished || out_fd[0] == -1) return;
+	// 1. Basic checks
+	if (!started || finished || out_fd[0] == -1)
+		return;
 
-    char buf[1024];
-    while (true) {
-        ssize_t n = read(out_fd[0], buf, sizeof(buf));
-        if (n > 0) {
-            buffer.append(buf, n);
-            continue;
-        }
-        else if (n == 0) {
-            finished = true;
-            if (pid > 0) { waitpid(pid, NULL, WNOHANG); pid = -1;}
-            close(out_fd[0]); out_fd[0] = -1;
-            break;
-        }
-        else {
-            // to fix no check on errno afater read or write
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-            {
-                break;
-            } else {
-                finished = true;
-                if (pid > 0) { waitpid(pid, NULL, WNOHANG); pid = -1; }
-                close(out_fd[0]); out_fd[0] = -1;
-                break;
-            }
-        }
-    }
+	char buf[1024];
+	
+	// 2. Perform a single read operation.
+	// We rely completely on the caller (the main loop) to only call this
+	// when poll() has indicated POLLIN, making an immediate -1 return less likely
+	// to be a transient EAGAIN (which we cannot check for anyway).
+	ssize_t n = read(out_fd[0], buf, sizeof(buf));
+
+	if (n > 0)
+	{
+		// Data successfully read. Append it.
+		buffer.append(buf, n);
+	}
+	else if (n == 0)
+	{
+		// End-of-file (CGI process has closed the pipe).
+		// This is the normal completion signal.
+		finished = true;
+		
+		// Attempt to reap the child process gracefully (non-blocking wait)
+		if (pid > 0) {
+			waitpid(pid, NULL, WNOHANG);
+			// We don't set pid = -1 here yet, as we might need to check its status later 
+			// in the handler (though cleaning up in the destructor is safer).
+		}
+		
+		// Close the read end of the pipe
+		close(out_fd[0]);
+		out_fd[0] = -1;
+	}
+	else // n == -1 (Error)
+	{
+		// Since checking errno is strictly forbidden, any -1 is treated as a fatal error.
+		// This covers all persistent errors, including potential (but rare) errors 
+		// even after poll() indicated readiness, and is the safest approach.
+		
+		finished = true;
+		
+		// Attempt to reap the child process (non-blocking wait)
+		if (pid > 0) {
+			waitpid(pid, NULL, WNOHANG);
+		}
+		
+		// Close the pipe and terminate the process gracefully.
+		close(out_fd[0]);
+		out_fd[0] = -1;
+	}
 }
 
 void Client::checkCGIValid()
@@ -357,6 +380,7 @@ void Client::checkCGIValid()
                 }
                 else
                 {
+                    setIsCGI(false);
                     std::cerr << "[CGI Check] Matched CGI extension '" << ext << "' but script is not executable (403): " << newPath << std::endl;
                     return errorResponse(403, "Forbidden: CGI script is not executable or invalid.");
                 }
