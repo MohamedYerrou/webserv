@@ -21,6 +21,7 @@
 #include "includes/Utils.hpp"
 #include <cstdio>
 
+
 void	setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
@@ -180,7 +181,7 @@ int main(int ac, char** av)
 		for (size_t i = 0; i < servers.size(); ++i) {
             servers[i].init_server(epfd, servers_fd);
         }
-		run_server(epfd, servers_fd);
+		Server::run_server(epfd, servers_fd);
 	}
 	catch(const std::exception& e)
 	{

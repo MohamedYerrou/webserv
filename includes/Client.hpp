@@ -20,6 +20,8 @@
 #include <dirent.h>
 #include <cstdio>
 
+
+class Server;
 class Client
 {
 	private:
@@ -93,6 +95,7 @@ class Client
 		void 					 handleCGI();
 		bool					 getIsCGI() const { return isCGI; }
 		void 					 setIsCGI(bool val) {isCGI = val; }
+		std::string const& getBody() const { return body; }
 		void cleanupCGI()
 		{
 			if (cgiHandler)
@@ -100,7 +103,17 @@ class Client
 				delete cgiHandler;
 				cgiHandler = NULL;
 			}
+
 		}
+
+		void setCGIError(bool error);
+		size_t getCGIBytesWritten() const;
+		void addCGIBytesWritten(size_t bytes);
+		void appendCGIResponse(const char* buf, ssize_t length);
+		void setCGIComplete(bool complete);
+		Server* getServer() const;
+		CGIHandler* getCGIHandler();
+
 };
 
 #endif

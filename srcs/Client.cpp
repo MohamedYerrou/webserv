@@ -197,27 +197,32 @@ const Location*   Client::findMathLocation(std::string url)
     return currentLocation;
 }
 
-std::string getExtension(const std::string& path)
-{
-    size_t dot_pos = path.rfind('.');
-    if (dot_pos == std::string::npos)
-        return "";
-    size_t slash_pos = path.rfind('/');
-    if (slash_pos != std::string::npos && slash_pos > dot_pos)
-        return "";
-    return path.substr(dot_pos);
-}
+
 
 void Client::handleCompleteRequest()
 {
     location = findMathLocation(currentRequest->getPath());
-    newPath = joinPath();
-    if (location->getPATH() == "/cgi")
+    if (!location)
+    {
+        errorResponse(404, "Location not found");
+        return;
+    }
+    if (location->getPATH() == "/cgi") // adjust condition as needed
+    {
+        newPath = joinPath();
         checkCGIValid();
-    if (currentRequest->getMethod() == "GET")
+        if (getIsCGI())
+            handleCGI();
+    }
+    else if (currentRequest->getMethod() == "GET")
         handleGET();
     else if (currentRequest->getMethod() == "DELETE")
         handleDELETE();
+    else if (currentRequest->getMethod() == "POST")
+    {
+        // POST without CGI - already handled in handleBody
+        // or handle non-CGI POST here if needed
+    }
 }
 
 
@@ -475,4 +480,55 @@ void    Client::appendData(const char* buf, ssize_t length)
         if (hasBody && !reqComplete)
             handleBody(buf, length);
     }
+}
+
+
+
+
+
+
+
+void Client::setCGIError(bool error)
+{
+    if (cgiHandler)
+        cgiHandler->setError(error);
+}
+
+size_t Client::getCGIBytesWritten() const
+{
+    if (cgiHandler)
+        return cgiHandler->getBytesWritten();
+    return 0;
+}
+
+void Client::addCGIBytesWritten(size_t bytes)
+{
+    if (cgiHandler)
+        cgiHandler->addBytesWritten(bytes);
+}
+
+void Client::appendCGIResponse(const char* buf, ssize_t length)
+{
+    if (cgiHandler)
+        cgiHandler->appendResponse(buf, length);
+}
+
+void Client::setCGIComplete(bool complete)
+{
+    if (cgiHandler)
+        cgiHandler->setComplete(complete);
+}
+
+
+
+
+Server* Client::getServer() const
+{
+    return currentServer;
+}
+
+
+CGIHandler* Client::getCGIHandler()
+{
+    return cgiHandler;
 }

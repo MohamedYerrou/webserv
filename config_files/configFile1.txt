@@ -27,7 +27,7 @@ server {
 
     location /cgi {
         root /home/myerrou/webserv/cgi-bin;
-        index index.py index1.py;
+        index index.py x index1.py;
         methods GET POST;
         autoindex off;
         cgi .php /usr/bin/php-cgi;
@@ -55,7 +55,7 @@ server {
     listen 127.0.0.1:3663;
 
     location /upload {
-        root /home/toro/Desktop/webserv;
+        root /home/toro/webserv;
         methods GET;
         index index3.html;
         error_page 302 /errors/302.html;

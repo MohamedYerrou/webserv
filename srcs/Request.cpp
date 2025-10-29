@@ -9,6 +9,12 @@ Request::~Request()
 {
 }
 
+const std::string& Request::getBody() const
+{
+    return body;
+}
+
+
 int Request::getStatusCode()
 {
     return statusCode;
