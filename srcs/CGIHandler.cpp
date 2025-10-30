@@ -127,64 +127,50 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
     env.push_back("SERVER_PROTOCOL=" + currentRequest->getProtocol());
     env.push_back("REQUEST_METHOD=" + currentRequest->getMethod());
     env.push_back("SCRIPT_FILENAME=" + scriptPath);
-    env.push_back("SCRIPT_NAME=" + currentRequest->getPath());
     
     std::string uri = currentRequest->getPath();
     size_t qPos = uri.find('?');
     if (qPos != std::string::npos)
-    {
         env.push_back("QUERY_STRING=" + uri.substr(qPos + 1));
-        env.push_back("PATH_INFO=" + uri.substr(0, qPos));
-    }
     else
-    {
         env.push_back("QUERY_STRING=");
-        env.push_back("PATH_INFO=");
-    }
-    
-    env.push_back("PATH_TRANSLATED=" + scriptPath);
     
     env.push_back("SERVER_SOFTWARE=webserv/1.0");
     std::map<std::string, std::string> headers = currentRequest->getHeaders();
+    (void)scriptPath;
     
-    if (headers.find("Host") != headers.end())
-    {
-        std::string host = headers["Host"];
-        size_t colonPos = host.find(':');
-        if (colonPos != std::string::npos)
-        {
-            env.push_back("SERVER_NAME=" + host.substr(0, colonPos));
-            env.push_back("SERVER_PORT=" + host.substr(colonPos + 1));
-        }
-        else
-        {
-            env.push_back("SERVER_NAME=" + host);
-            env.push_back("SERVER_PORT=80");
-        }
-        env.push_back("HTTP_HOST=" + host);
-    }
-    else
-    {
-        env.push_back("SERVER_NAME=localhost");
-        env.push_back("SERVER_PORT=80");
-    }
+    // if (headers.find("Host") != headers.end())
+    // {
+    //     std::string host = headers["Host"];
+    //     size_t colonPos = host.find(':');
+    //     if (colonPos != std::string::npos)
+    //     {
+    //         env.push_back("SERVER_NAME=" + host.substr(0, colonPos));
+    //         env.push_back("SERVER_PORT=" + host.substr(colonPos + 1));
+    //     }
+    //     else
+    //     {
+    //         env.push_back("SERVER_NAME=" + host);
+    //         env.push_back("SERVER_PORT=80");
+    //     }
+    // }
+    // else
+    // {
+    //     env.push_back("SERVER_NAME=localhost");
+    //     env.push_back("SERVER_PORT=80");
+    // }
     
-    if (headers.find("Content-Type") != headers.end()) {
+    if (headers.find("Content-Type") != headers.end())
         env.push_back("CONTENT_TYPE=" + headers["Content-Type"]);
-    } else {
-        env.push_back("CONTENT_TYPE=");
-    }
     
-    if (headers.find("Content-Length") != headers.end()) {
+    if (headers.find("Content-Length") != headers.end())
         env.push_back("CONTENT_LENGTH=" + headers["Content-Length"]);
-    } else {
-        env.push_back("CONTENT_LENGTH=0");
-    }
-    
-    env.push_back("REMOTE_ADDR=127.0.0.1");
-    env.push_back("REMOTE_HOST=127.0.0.1");
     
     env.push_back("REDIRECT_STATUS=200");
+    for (std::map<std::string, std::string>::iterator it = headers.begin() ; it != headers.end() ; ++it)
+    {
+        env.push_back("HTTP_" + it->first + '=' + it->second);
+    }
 
     return env;
 }
@@ -212,72 +198,11 @@ void Client::handleCGI()
         catch (const std::exception& e)
         {
             errorResponse(500, e.what());
-
+            cgiHandler->setError(true);
             delete cgiHandler;
             cgiHandler = NULL;
             return;
         }
-    }
-    
-    if (cgiHandler && cgiHandler->isFinished())
-    {
-        std::string rawOutput = cgiHandler->getBuffer();
-
-        std::string responseBody;
-        std::string responseHeaders;
-
-        size_t headerEndPos = rawOutput.find("\r\n\r\n");
-        if (headerEndPos == std::string::npos)
-        {
-            headerEndPos = rawOutput.find("\n\n");
-        }
-
-        if (headerEndPos == std::string::npos)
-        {
-            responseBody = rawOutput;
-            
-            std::ostringstream oss;
-            oss << responseBody.size();
-            
-            responseHeaders = "HTTP/1.1 200 OK\r\n";
-            responseHeaders += "Content-Type: text/html\r\n";
-            responseHeaders += "Content-Length: " + oss.str() + "\r\n";
-        }
-        else
-        {
-            responseBody = rawOutput.substr(headerEndPos + (rawOutput[headerEndPos] == '\r' ? 4 : 2));
-            
-            std::string cgiHeaderPart = rawOutput.substr(0, headerEndPos);
-            
-            std::ostringstream ossBodySize;
-            ossBodySize << responseBody.size();
-
-            responseHeaders = "HTTP/1.1 ";
-            
-            size_t statusPos = cgiHeaderPart.find("Status: ");
-            if (statusPos != std::string::npos)
-            {
-                size_t statusEnd = cgiHeaderPart.find("\r\n", statusPos);
-                if (statusEnd == std::string::npos) statusEnd = cgiHeaderPart.find('\n', statusPos);
-                if (statusEnd == std::string::npos) statusEnd = cgiHeaderPart.length();
-
-                responseHeaders += cgiHeaderPart.substr(statusPos + 8, statusEnd - (statusPos + 8)) + "\r\n";
-            }
-            else
-                responseHeaders += "200 OK\r\n";
-            
-            responseHeaders += cgiHeaderPart + "\r\n";
-            responseHeaders += "Content-Length: " + ossBodySize.str() + "\r\n";
-        }
-        
-        std::string finalResponse = responseHeaders + "\r\n" + responseBody;
-
-        send(getFD(), finalResponse.c_str(), finalResponse.size(), 0);
-        
-        setSentAll(true);
-
-        delete cgiHandler;
-        cgiHandler = NULL;
     }
 }
 
@@ -323,13 +248,34 @@ void CGIHandler::startCGI(const std::string& scriptPath, const std::map<std::str
         
         if (access(scriptPath.c_str(), F_OK) != 0) {
             write(out_fd[1], "E", 1);
+            setError(true);
             for (size_t i = 0; i < envp.size(); ++i) delete[] envp[i];
             exit(1);
         }
-
-        char* argv[] = { const_cast<char*>(scriptPath.c_str()), NULL };
-        execve(scriptPath.c_str(), argv, envp.empty() ? NULL : &envp[0]);
-
+        std::map<std::string, std::string> cgi = (client->findMathLocation(client->getcurrentRequest()->getPath())->getCgi());
+        
+        // Find the appropriate interpreter based on script extension
+        std::string interpreter;
+        std::size_t dotPos = scriptPath.find_last_of('.');
+        if (dotPos != std::string::npos)
+        {
+            std::string ext = scriptPath.substr(dotPos);
+            std::map<std::string, std::string>::const_iterator it = cgi.find(ext);
+            if (it != cgi.end())
+            interpreter = it->second;
+        }
+        
+        if (!interpreter.empty())
+        {
+            // Execute with the found interpreter
+            char* argv[] = { const_cast<char*>(interpreter.c_str()), const_cast<char*>(scriptPath.c_str()), NULL };
+            execve(interpreter.c_str(), argv, envp.empty() ? NULL : &envp[0]);
+        }
+        // else
+        // {
+        //     char* argv[] = { const_cast<char*>(scriptPath.c_str()), NULL };
+        //     execve(scriptPath.c_str(), argv, envp.empty() ? NULL : &envp[0]);
+        // }
         write(out_fd[1], "E", 1);
         for (size_t i = 0; i < envp.size(); ++i) delete[] envp[i];
         exit(1);
@@ -342,21 +288,35 @@ void CGIHandler::startCGI(const std::string& scriptPath, const std::map<std::str
         fcntl(out_fd[0], F_SETFL, O_NONBLOCK);
         fcntl(in_fd[1], F_SETFL, O_NONBLOCK);
         
-        // CGIContext ctx;
-        // ctx.childpid = pid;
-        // ctx.clientfd = client->getFD();
-        // ctx.body = this->client->getBody();
-        // ctx.output_buffer = "";
-        // ctx.is_stdin_closed = 0;
-        // ctx.is_stdout_closed = 0;
-        // ctx.pipe_from_cgi = out_fd[0];
-        // ctx.pipe_to_cgi = in_fd[1];
-        // ctx.bytes_written = 0;
-        // ctx.is_error = 0;
-        
         started = true;
     }
 }
+
+
+bool Client::validateCGIScript(const std::string& scriptPath)
+{
+    std::ifstream file(scriptPath.c_str());
+    if (!file.is_open())
+        return false;
+
+    std::string line;
+    bool hasShebang = false;
+    bool isEmpty = true;
+
+    // Check for shebang line
+    if (std::getline(file, line))
+    {
+        isEmpty = false;
+        if (line.length() >= 2 && line[0] == '#' && line[1] == '!')
+            hasShebang = true;
+    }
+
+    file.close();
+
+    // Script must not be empty and should have a valid shebang
+    return !isEmpty && hasShebang;
+}
+
 
 void Client::checkCGIValid()
 {
@@ -377,7 +337,7 @@ void Client::checkCGIValid()
     if (!methodAllowed)
     {
         std::cerr << "[CGI Check] Method " << requestMethod << " not allowed for path: " << currentRequest->getPath() << std::endl;
-        return errorResponse(405, "Method Not Allowed");
+        return errorResponse(405, "METHOD NOT ALLOWED");
     }
 
     // 2. Determine if CGI processing is configured at all for this location
@@ -423,7 +383,7 @@ void Client::checkCGIValid()
             {
                 std::cerr << "[CGI Check] Index file not found and autoindex is OFF: " << newPath << std::endl;
                 // Nginx returns 403 Forbidden when an index is missing and autoindex is off.
-                return errorResponse(403, "Forbidden: Directory listing denied");
+                return errorResponse(403, "FORBIDDEN");
             }
         }
     }
@@ -431,7 +391,7 @@ void Client::checkCGIValid()
     {
         // Path is neither a directory nor a file.
         std::cerr << "[CGI Check] Resource not found: " << newPath << std::endl;
-        return errorResponse(404, "Not Found");
+        return errorResponse(404, "NOT FOUND");
     }
 
     // 4. File Handling (Reached here if newPath is confirmed to be a regular file)
@@ -444,27 +404,20 @@ void Client::checkCGIValid()
         {
             std::string ext = newPath.substr(dotPos);
             std::map<std::string, std::string>::const_iterator it = cgiMap.find(ext);
-
             if (it != cgiMap.end())
             {
-                if (access(newPath.c_str(), X_OK) == 0)
-                {
-                    setIsCGI(true);
-                    std::cout << "[CGI Check] Serving CGI script with interpreter: " << it->second << " for path: " << newPath << std::endl;
-                    return;
-                }
-                else
-                {
-                    setIsCGI(false);
-                    std::cerr << "[CGI Check] Matched CGI extension '" << ext << "' but script is not executable (403): " << newPath << std::endl;
-                    return errorResponse(403, "Forbidden: CGI script is not executable or invalid.");
-                }
+                setIsCGI(true);
+                std::cout << "[CGI Check] Serving CGI script with interpreter: " << it->second << " for path: " << newPath << std::endl;
+                return;
             }
         }
     }
 
     // 5. Default to Static File (Final Fallback)
-    // If we reach this point, the resource is a file, but it did not match any CGI rules.
     setIsCGI(false);
+    if (currentRequest->getMethod() == "GET")
+        handleGET();
+    // else if (currentRequest->getMethod() == "POST")
+    //     handlePOST();
     std::cout << "[CGI Check] Serving static file: " << newPath << std::endl;
 }

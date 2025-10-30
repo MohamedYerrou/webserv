@@ -49,6 +49,7 @@ class Client
 		CGIHandler* cgiHandler;
 		bool		isCGI;
 		std::string newPath;
+		time_t last_activity;
 
 	public:
 		Client(int fd, Server* srv);
@@ -91,7 +92,7 @@ class Client
 		// std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
 		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
 		// void 					 handleCGIResponse(const std::string& cgiOutput);
-		void	checkCGIValid();
+		void					 checkCGIValid();
 		void 					 handleCGI();
 		bool					 getIsCGI() const { return isCGI; }
 		void 					 setIsCGI(bool val) {isCGI = val; }
@@ -113,6 +114,11 @@ class Client
 		void setCGIComplete(bool complete);
 		Server* getServer() const;
 		CGIHandler* getCGIHandler();
+		bool validateCGIScript(const std::string& scriptPath);
+		time_t getLastActivity() const { return last_activity; }
+		void updateLastActivity() { last_activity = time(NULL); }
+		Request* getcurrentRequest();
+
 
 };
 

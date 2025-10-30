@@ -41,8 +41,8 @@ class Server
 	void							init_server(int epfd, std::map<int, Server*>& fd_vect);
 	const std::vector<Location>&	getLocations() const;
 	size_t							getMaxSize() const;
-	void	addCgiIn(CGIContext CGIctx, int fd);
-	void	addCgiOut(CGIContext CGIctx, int fd);
+	void							addCgiIn(CGIContext CGIctx, int fd);
+	void							addCgiOut(CGIContext CGIctx, int fd);
 };
 
 #endif

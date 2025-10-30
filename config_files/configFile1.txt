@@ -1,5 +1,5 @@
 server {
-    listen 127.0.0.11:8080;
+    listen 0.0.0.0:8080;
     listen 127.0.0.13:4242;
     //url: /cgi/index.html
 
@@ -9,7 +9,7 @@ server {
         methods GET POST DELETE;
         autoindex on;
         upload_store /home/myerrou/webserv/www;
-        error_page 403 /errors/403.html;
+        error_page /errors/403.html;
         error_page 404 /errors/404.html;
         error_page 405 /errors/405.html;
         error_page 301 /errors/301.html;
@@ -27,11 +27,17 @@ server {
 
     location /cgi {
         root /home/myerrou/webserv/cgi-bin;
-        index index.py x index1.py;
+        index index.py test.php index1.py;
         methods GET POST;
-        autoindex off;
+        autoindex on;
         cgi .php /usr/bin/php-cgi;
         cgi .py /usr/bin/python3;
+        error_page 403 /errors/403.html;
+        error_page 404 /errors/404.html;
+        error_page 405 /errors/405.html;
+        error_page 301 /errors/301.html;
+        error_page 500 /errors/500.html;
+        error_page 200 /errors/200.html;
     }
 }
 

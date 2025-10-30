@@ -41,6 +41,11 @@ int Client::getFD() const
     return fd;
 }
 
+Request* Client::getcurrentRequest()
+{
+    return currentRequest;
+}
+
 const std::string& Client::getHeaders() const
 {
     return headers;
