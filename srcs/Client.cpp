@@ -377,6 +377,7 @@ void    Client::appendData(const char* buf, ssize_t length)
                         return;
                     oneBody = true;
                     std::string target_path = constructFilePath(currentRequest->getPath());
+                    std::cout << "TARGETPATH: " << target_path << std::endl;
                     if (target_path.empty() && reqComplete)
                         return;
                     currentRequest->generateTmpFile(target_path, "");

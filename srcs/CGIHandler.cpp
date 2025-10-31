@@ -77,10 +77,24 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
     
     env.push_back("SERVER_SOFTWARE=webserv/1.0");
     std::map<std::string, std::string> headers = currentRequest->getHeaders();
-    
-    if (headers.find("Host") != headers.end())
+    std::map<std::string, std::string> queries = currentRequest->getQueries();
+    if (!queries.empty())
     {
-        std::string host = headers["Host"];
+        std::string str;
+        std::map<std::string, std::string>::const_iterator it;
+        for (it = queries.begin(); it != queries.end(); ++it)
+        {
+            str += it->first;
+            str += '=';
+            str += it->second;
+            str += '&';
+        }
+        env.push_back("QUERY_STRING=" + str);
+    }
+    
+    if (headers.find("host") != headers.end())
+    {
+        std::string host = headers["host"];
         size_t colonPos = host.find(':');
         if (colonPos != std::string::npos)
         {
@@ -99,13 +113,13 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
         env.push_back("SERVER_PORT=80");
     }
     
-    if (headers.find("Content-Type") != headers.end())
-        env.push_back("CONTENT_TYPE=" + headers["Content-Type"]);
+    if (headers.find("content-type") != headers.end())
+        env.push_back("CONTENT_TYPE=" + headers["content-type"]);
     else
         env.push_back("CONTENT_TYPE=");
     
-    if (headers.find("Content-Length") != headers.end())
-        env.push_back("CONTENT_LENGTH=" + headers["Content-Length"]);
+    if (headers.find("content-length") != headers.end())
+        env.push_back("CONTENT_LENGTH=" + headers["content-length"]);
     else
         env.push_back("CONTENT_LENGTH=0");
     
@@ -113,14 +127,19 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
     env.push_back("REMOTE_HOST=127.0.0.1");
     
     env.push_back("REDIRECT_STATUS=200");
+    if (currentRequest->getMethod() == "POST")
+    {
+        std::string fileName = currentRequest->getFileName();
+        env.push_back("POST_DATA_FILE=" + fileName);
+    }
 
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
     {
         std::string headerName = it->first;
         std::string headerValue = it->second;
         
-        if (headerName == "Content-Type" || headerName == "Content-Length" || 
-            headerName == "Authorization" || headerName == "Connection")
+        if (headerName == "content-type" || headerName == "content-length" || 
+            headerName == "authorization" || headerName == "connection")
             continue;
         
         std::string metaVarName = "HTTP_";

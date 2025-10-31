@@ -133,8 +133,7 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 			else
 			{
 				if (client->getIsCGI())
-				{	
-					std::cout << "Cleening up..." << std::endl;
+				{
 					client->cleanupCGI();
 				}
 				epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);

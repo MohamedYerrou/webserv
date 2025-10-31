@@ -49,6 +49,11 @@ void										Request::closeFileUpload()
     close(uploadFile);
 }
 
+const std::string& 								Request::getFileName() const
+{
+    return fileName;
+}
+
 size_t  Request::getContentLength() const
 {
     std::map<std::string, std::string>::const_iterator it = headers.find("content-length");
@@ -263,7 +268,6 @@ void    Request::parseHeaders(const std::string& raw)
 void    Request::generateTmpFile(const std::string& target_path, const std::string& file)
 {
     char		fileNumber[15];
-    std::string fileName;
 
     std::map<std::string, std::string>::iterator it = queries.find("filename");
 

@@ -15,6 +15,7 @@ server {
         error_page 301 /errors/301.html;
         error_page 500 /errors/500.html;
         error_page 200 /errors/200.html;
+        return 301 https://www.youtube.com/watch?v=qHxXqzsjcqc
     }
 
     location /upload {
@@ -27,8 +28,9 @@ server {
 
     location /cgi {
         root /home/toro/Desktop/mainWeb/cgi-bin;
-        index index.py xyz.py test.py;
+        index GET.py post.py index.py xyz.py test.py;
         methods GET POST;
+        upload_store /home/toro/Desktop/mainWeb;
         autoindex off;
         cgi .php /usr/bin/php-cgi;
         cgi .py /usr/bin/python3;
