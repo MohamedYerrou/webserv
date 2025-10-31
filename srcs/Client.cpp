@@ -219,17 +219,6 @@ const Location*   Client::findMathLocation(std::string url)
     return currentLocation;
 }
 
-std::string getExtension(const std::string& path)
-{
-    size_t dot_pos = path.rfind('.');
-    if (dot_pos == std::string::npos)
-        return "";
-    size_t slash_pos = path.rfind('/');
-    if (slash_pos != std::string::npos && slash_pos > dot_pos)
-        return "";
-    return path.substr(dot_pos);
-}
-
 void Client::handleCompleteRequest()
 {
     location = findMathLocation(currentRequest->getPath());

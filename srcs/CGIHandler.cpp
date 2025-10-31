@@ -309,6 +309,7 @@ void CGIHandler::readOutput()
     }
 }
 
+
 void Client::checkCGIValid()
 {
     // 1. Check Request Method Authorization (Nginx uses 405 Method Not Allowed)
@@ -328,7 +329,7 @@ void Client::checkCGIValid()
     if (!methodAllowed)
     {
         std::cerr << "[CGI Check] Method " << requestMethod << " not allowed for path: " << currentRequest->getPath() << std::endl;
-        return errorResponse(405, "Method Not Allowed");
+        return errorResponse(405, "METHOD NOT ALLOWED");
     }
 
     // 2. Determine if CGI processing is configured at all for this location
@@ -339,18 +340,14 @@ void Client::checkCGIValid()
 
     if (isDir(newPath))
     {
-        // Path points to a directory. Look for index files (Nginx-like behavior).
         const std::vector<std::string>& indexFiles = location->getIndex();
         bool indexFound = false;
         std::string originalPath = newPath;
 
         if (!indexFiles.empty())
         {
-            // Ensure directory path ends with a slash for proper index file joining
             if (originalPath.length() > 0 && originalPath[originalPath.length() - 1] != '/')
-            {
                 originalPath += "/";
-            }
 
             for (size_t i = 0; i < indexFiles.size(); ++i)
             {
@@ -358,7 +355,7 @@ void Client::checkCGIValid()
 
                 if (isFile(indexPath))
                 {
-                    newPath = indexPath; // Update newPath to the actual index file path
+                    newPath = indexPath;
                     indexFound = true;
                     break;
                 }
@@ -375,16 +372,14 @@ void Client::checkCGIValid()
             else
             {
                 std::cerr << "[CGI Check] Index file not found and autoindex is OFF: " << newPath << std::endl;
-                // Nginx returns 403 Forbidden when an index is missing and autoindex is off.
-                return errorResponse(403, "Forbidden: Directory listing denied");
+                return errorResponse(403, "FORBIDDEN");
             }
         }
     }
     else if (!isFile(newPath))
     {
-        // Path is neither a directory nor a file.
         std::cerr << "[CGI Check] Resource not found: " << newPath << std::endl;
-        return errorResponse(404, "Not Found");
+        return errorResponse(404, "NOT FOUND");
     }
 
     // 4. File Handling (Reached here if newPath is confirmed to be a regular file)
@@ -397,31 +392,20 @@ void Client::checkCGIValid()
         {
             std::string ext = newPath.substr(dotPos);
             std::map<std::string, std::string>::const_iterator it = cgiMap.find(ext);
-
             if (it != cgiMap.end())
             {
-                // File extension matches a configured CGI interpreter
-                
-                // CRITICAL NGINX-LIKE CHECK: Ensure the file is executable (X_OK).
-                // Prevents execve failure loop and returns 403, not 500.
-                if (access(newPath.c_str(), X_OK) == 0)
-                {
-                    setIsCGI(true);
-                    std::cout << "[CGI Check] Serving CGI script with interpreter: " << it->second << " for path: " << newPath << std::endl;
-                    return; // CGI processing flagged.
-                }
-                else
-                {
-                    std::cerr << "[CGI Check] Matched CGI extension '" << ext << "' but script is not executable (403): " << newPath << std::endl;
-                    return errorResponse(403, "Forbidden: CGI script is not executable or invalid.");
-                }
+                setIsCGI(true);
+                std::cout << "[CGI Check] Serving CGI script with interpreter: " << it->second << " for path: " << newPath << std::endl;
+                return;
             }
         }
     }
 
     // 5. Default to Static File (Final Fallback)
-    // If we reach this point, the resource is a file, but it did not match any CGI rules.
     setIsCGI(false);
+    if (currentRequest->getMethod() == "GET")
+        handleGET();
+    // else if (currentRequest->getMethod() == "POST")
+    //     handlePOST();
     std::cout << "[CGI Check] Serving static file: " << newPath << std::endl;
-
 }

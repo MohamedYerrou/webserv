@@ -31,13 +31,9 @@ public:
     bool isFinished() const;
     std::string getBuffer() const;
     int getOutFD() const;
-    // void    killIfRunning();
-    // bool    getIsRunning() const;
     void stopCGI();
     time_t getStartTime() const { return _startTime; }
     bool    isStarted() const { return started; }
 };
-
-std::string getExtension(const std::string& path);
 
 #endif
