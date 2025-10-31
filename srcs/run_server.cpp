@@ -108,6 +108,46 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 }
 
+void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
+{
+	std::map<int, Client*>::iterator it;
+	for (it = clients.begin(); it != clients.end(); )
+	{
+		Client* client = it->second;
+		if (client && (client->isTimedOut() || (client->getIsCGI() && client->isCgiTimedOut())))
+		{
+			std::string str;
+			if (client->isTimedOut())
+				str = "Time out has occured\n";
+			else
+				str = "CGI Time out has occured\n";
+			ssize_t sent = send(it->first, str.c_str(), str.length(), 0);
+			if (sent == -1)
+			{
+				std::cout << "Error: " << strerror(errno) << std::endl;
+				epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
+				close(it->first);
+				delete client;
+				clients.erase(it++);
+			}
+			else
+			{
+				if (client->getIsCGI())
+				{	
+					std::cout << "Cleening up..." << std::endl;
+					client->cleanupCGI();
+				}
+				epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
+				close(it->first);
+				delete client;
+				clients.erase(it++);
+			}
+		}
+		else
+			it++;
+	}
+}
+
 void run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
     struct epoll_event events[64];
@@ -118,62 +158,26 @@ void run_server(int epfd, std::map<int, Server*>& servers_fd)
         int nfds = epoll_wait(epfd, events, 64, 1000);
         if (nfds == -1)
             throw_exception("epoll_wait: ", strerror(errno));
-		std::map<int, Client*>::iterator it;
-		for (it = clients.begin(); it != clients.end(); )
-		{
-			Client* client = it->second;
-			if (client && (client->isTimedOut() || (client->getIsCGI() && client->isCgiTimedOut())))
-			{
-				std::string str;
-				if (client->isTimedOut())
-					str = "Time out has occured\n";
-				else
-					str = "CGI Time out has occured\n";
-				ssize_t sent = send(it->first, str.c_str(), str.length(), 0);
-				if (sent == -1)
-				{
-					std::cout << "Error: " << strerror(errno) << std::endl;
-					epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
-					close(it->first);
-					delete client;
-					clients.erase(it++);
-				}
-				else
-				{
-					if (client->getIsCGI())
-					{	
-						std::cout << "Cleening up..." << std::endl;
-						client->cleanupCGI();
-					}
-					epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
-					close(it->first);
-					delete client;
-					clients.erase(it++);
-				}
-			}
-			else
-				it++;
-		}
-
+		handleTimeOut(epfd, clients);
         for (int i = 0; i < nfds; i++)
         {
             int fd = events[i].data.fd;
             if (listening_fd(servers_fd, fd))
+            {
+				handleListeningClient(epfd, fd, clients, servers_fd);
+				continue;
+			}
+			if (clients.find(fd) == clients.end())
 			{
-                handleListeningClient(epfd, fd, clients, servers_fd);
+				epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+				close(fd);
 				continue;
 			}
 			Client* client = clients[fd];
             if (events[i].events & EPOLLIN)
 				handleClientRequest(epfd, fd, clients);
-            if (client && events[i].events & EPOLLOUT)
+            else if (events[i].events & EPOLLOUT)
             {
-				if (!client)
-				{
-					std::cout << "FINAWA GHADI " << std::endl;
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					continue;
-				}
                 if (client->getIsCGI())
                 {
                     client->handleCGI();

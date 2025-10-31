@@ -64,7 +64,7 @@ class Client
 		void				appendData(const char* buf, ssize_t length);
 		void				setBodySize(size_t size);
 		void				handleHeaders(const std::string& raw);
-		void				handleBody(const char* buf, ssize_t length);
+		void				handlePost(const char* buf, ssize_t length);
 		Request*			getRequest() const;
 		void				handleCompleteRequest();
 		Response& 			getResponse();
@@ -92,6 +92,8 @@ class Client
 		bool			isTimedOut();
 		void			setLastActivityTime(time_t time);
 		void			setIsRequesting(bool flag);
+		void    		handleBodyHeaders();
+		void    		handleInBody();
 		
 
 		
