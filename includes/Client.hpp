@@ -96,10 +96,8 @@ class Client
 
 		
 		//Cgi added by mohamed
-		// std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
 		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
-		// void 					 handleCGIResponse(const std::string& cgiOutput);
-		void	checkCGIValid();
+		void					 checkCGIValid();
 		void 					 handleCGI();
 		bool					 getIsCGI() const { return isCGI; }
 		void 					 setIsCGI(bool val) {isCGI = val; }
@@ -121,6 +119,7 @@ class Client
 			
 			return (time(NULL) - cgiHandler->getStartTime() > CGI_TIMEOUT);
 		}
+		Request*	getCurrentRequest(){ return currentRequest;}
 };
 
 #endif

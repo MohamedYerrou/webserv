@@ -22,11 +22,13 @@ CGIHandler::~CGIHandler()
     if (out_fd[0] != -1) { close(out_fd[0]); out_fd[0] = -1; }
     if (out_fd[1] != -1) { close(out_fd[1]); out_fd[1] = -1; }
 
-    if (pid > 0) {
-    int status;
-    if (waitpid(pid, &status, WNOHANG) <= 0) { 
-        kill(pid, SIGKILL); 
-        waitpid(pid, &status, 0);
+    if (pid > 0)
+    {
+        int status;
+        if (waitpid(pid, &status, WNOHANG) <= 0)
+        { 
+            kill(pid, SIGKILL); 
+            waitpid(pid, &status, 0);
         }
     }
 }
@@ -52,76 +54,92 @@ std::vector<std::string> Client::buildCGIEnv(const std::string& scriptPath)
 {
     std::vector<std::string> env;
     
-    env.push_back("GATEWAY_INTERFACE=CGI/1.0");
+    env.push_back("GATEWAY_INTERFACE=CGI/1.1");
     env.push_back("SERVER_PROTOCOL=" + currentRequest->getProtocol());
     env.push_back("REQUEST_METHOD=" + currentRequest->getMethod());
     env.push_back("SCRIPT_FILENAME=" + scriptPath);
-    // env.push_back("PATH_INFO=" + pathInfo);  // updated
-
+    env.push_back("SCRIPT_NAME=" + currentRequest->getPath());
+    
+    std::string uri = currentRequest->getPath();
+    size_t qPos = uri.find('?');
+    if (qPos != std::string::npos)
+    {
+        env.push_back("QUERY_STRING=" + uri.substr(qPos + 1));
+        env.push_back("PATH_INFO=" + uri.substr(0, qPos));
+    }
+    else
+    {
+        env.push_back("QUERY_STRING=");
+        env.push_back("PATH_INFO=");
+    }
+    
+    env.push_back("PATH_TRANSLATED=" + scriptPath);
+    
+    env.push_back("SERVER_SOFTWARE=webserv/1.0");
     std::map<std::string, std::string> headers = currentRequest->getHeaders();
+    
     if (headers.find("Host") != headers.end())
-        env.push_back("HTTP_HOST=" + headers["Host"]);
+    {
+        std::string host = headers["Host"];
+        size_t colonPos = host.find(':');
+        if (colonPos != std::string::npos)
+        {
+            env.push_back("SERVER_NAME=" + host.substr(0, colonPos));
+            env.push_back("SERVER_PORT=" + host.substr(colonPos + 1));
+        }
+        else
+        {
+            env.push_back("SERVER_NAME=" + host);
+            env.push_back("SERVER_PORT=80");
+        }
+    }
+    else
+    {
+        env.push_back("SERVER_NAME=localhost");
+        env.push_back("SERVER_PORT=80");
+    }
     
     if (headers.find("Content-Type") != headers.end())
         env.push_back("CONTENT_TYPE=" + headers["Content-Type"]);
-
+    else
+        env.push_back("CONTENT_TYPE=");
+    
     if (headers.find("Content-Length") != headers.end())
         env.push_back("CONTENT_LENGTH=" + headers["Content-Length"]);
-
-    env.push_back("SERVER_SOFTWARE=server/1.0");
+    else
+        env.push_back("CONTENT_LENGTH=0");
+    
+    env.push_back("REMOTE_ADDR=127.0.0.1");
+    env.push_back("REMOTE_HOST=127.0.0.1");
+    
     env.push_back("REDIRECT_STATUS=200");
+
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+    {
+        std::string headerName = it->first;
+        std::string headerValue = it->second;
+        
+        if (headerName == "Content-Type" || headerName == "Content-Length" || 
+            headerName == "Authorization" || headerName == "Connection")
+            continue;
+        
+        std::string metaVarName = "HTTP_";
+        for (size_t i = 0; i < headerName.length(); ++i)
+        {
+            if (headerName[i] == '-')
+                metaVarName += '_';
+            else
+                metaVarName += std::toupper(headerName[i]);
+        }
+        
+        env.push_back(metaVarName + "=" + headerValue);
+    }
 
     return env;
 }
 
-
-// Add this method to your CGIHandler class
-void CGIHandler::stopCGI()
-{
-    if (pid > 0) // Check if the process is valid and running
-    {
-        std::cerr << "[CGI] Timeout or error: Killing PID " << pid << "\n";
-        
-        // 1. Kill the child process
-        //    SIGKILL is harsh, but a 'while(true)' loop won't respond to SIGTERM.
-        kill(pid, SIGKILL); 
-        
-        // 2. Reap the child process to prevent a zombie
-        //    WNOHANG is good practice, but after a kill, 
-        //    a blocking waitpid is also fine if this is the last stop.
-        waitpid(pid, NULL, WNOHANG); 
-        
-        pid = -1; // Mark as no longer running
-    }
-    
-    started = false;
-
-    // 3. Close the pipe file descriptors owned by the parent
-    if (in_fd[1] != -1) { // Parent's write-end
-        close(in_fd[1]);
-        in_fd[1] = -1;
-    }
-    if (out_fd[0] != -1) { // Parent's read-end
-        
-        // 4. *** THIS IS CRITICAL ***
-        // You MUST remove out_fd[0] from your epoll/kqueue/select instance here.
-        // For example, if you are using epoll:
-        // epoll_ctl(g_epoll_fd, EPOLL_CTL_DEL, out_fd[0], NULL);
-        
-        close(out_fd[0]);
-        out_fd[0] = -1;
-    }
-
-    // Also close the unused ends just in case (though they should be closed in startCGI)
-    if (in_fd[0] != -1) { close(in_fd[0]); in_fd[0] = -1; }
-    if (out_fd[1] != -1) { close(out_fd[1]); out_fd[1] = -1; }
-}
-
-
-
 void Client::handleCGI()
 {
-    // Build environment
     std::vector<std::string> vecEnv = buildCGIEnv(newPath);
     std::map<std::string,std::string> envMap;
     for (std::size_t i = 0; i < vecEnv.size(); ++i)
@@ -131,7 +149,6 @@ void Client::handleCGI()
             envMap[vecEnv[i].substr(0, pos)] = vecEnv[i].substr(pos + 1);
     }
 
-    // Start CGI if not already started
     if (!cgiHandler)
     {
         cgiHandler = new CGIHandler(this);
@@ -141,7 +158,6 @@ void Client::handleCGI()
         }
         catch (const std::exception& e)
         {
-            std::cerr << "[CGI] Exception while starting CGI: " << e.what() << std::endl;
             errorResponse(500, e.what());
             delete cgiHandler;
             cgiHandler = NULL;
@@ -149,11 +165,8 @@ void Client::handleCGI()
         }
     }
 
-    // Read output
     if (cgiHandler)
         cgiHandler->readOutput();
-
-    // Send response if finished
     if (cgiHandler && cgiHandler->isFinished())
     {
         std::string body = cgiHandler->getBuffer();
@@ -181,40 +194,30 @@ void CGIHandler::startCGI(const std::string& scriptPath, const std::map<std::str
     
     int err_pipe[2];
     if (pipe(in_fd) == -1 || pipe(out_fd) == -1 || pipe(err_pipe) == -1) {
-        int saved = errno;
         if (in_fd[0] != -1) { close(in_fd[0]); in_fd[0] = -1; }
         if (in_fd[1] != -1) { close(in_fd[1]); in_fd[1] = -1; }
         if (out_fd[0] != -1) { close(out_fd[0]); out_fd[0] = -1; }
         if (out_fd[1] != -1) { close(out_fd[1]); out_fd[1] = -1; }
         if (err_pipe[0] != -1) { close(err_pipe[0]); err_pipe[0] = -1; }
         if (err_pipe[1] != -1) { close(err_pipe[1]); err_pipe[1] = -1; }
-        std::cerr << "[CGI] pipe() failed: " << strerror(saved) << "\n";
         throw std::runtime_error("pipe failed");
     }
 
-    // Set the close-on-exec flag for the child's end of the error pipe.
     if (fcntl(err_pipe[1], F_SETFD, FD_CLOEXEC) == -1)
     {
-        int saved = errno;
         close(in_fd[0]); close(in_fd[1]);
         close(out_fd[0]); close(out_fd[1]);
         close(err_pipe[0]); close(err_pipe[1]);
-        std::cerr << "[CGI] fcntl(FD_CLOEXEC) failed: " << strerror(saved) << "\n";
         throw std::runtime_error("fcntl failed");
     }
-    // *** END OF FIX ***
     
     pid = fork();
     if (pid == -1) {
-        int saved = errno;
         close(in_fd[0]); close(in_fd[1]); in_fd[0] = in_fd[1] = -1;
         close(out_fd[0]); close(out_fd[1]); out_fd[0] = out_fd[1] = -1;
         close(err_pipe[0]); close(err_pipe[1]);
-        std::cerr << "[CGI] fork() failed: " << strerror(saved) << "\n";
         throw std::runtime_error("fork failed");
     }
-    std::cerr << "[CGI] startCGI: script=" << scriptPath
-    << " pid=" << pid << " outfd=" << out_fd[0] << "\n";
     
     if (pid == 0)
     {
@@ -238,16 +241,34 @@ void CGIHandler::startCGI(const std::string& scriptPath, const std::map<std::str
         }
         envp.push_back(NULL);
         
-        if (access(scriptPath.c_str(), X_OK) != 0) {
-            write(err_pipe[1], "E", 1);
+        if (access(scriptPath.c_str(), F_OK) != 0) {
+            write(out_fd[1], "E", 1);
             for (size_t i = 0; i < envp.size(); ++i) delete[] envp[i];
             exit(1);
         }
+        std::map<std::string, std::string> cgi = (client->findMathLocation(client->getCurrentRequest()->getPath())->getCgi());
 
-        char* argv[] = { const_cast<char*>(scriptPath.c_str()), NULL };
-        execve(scriptPath.c_str(), argv, envp.empty() ? NULL : &envp[0]);
-
-        write(err_pipe[1], "E", 1);
+        std::string interpreter;
+        std::size_t dotPos = scriptPath.find_last_of('.');
+        if (dotPos != std::string::npos)
+        {
+            std::string ext = scriptPath.substr(dotPos);
+            std::map<std::string, std::string>::const_iterator it = cgi.find(ext);
+            if (it != cgi.end())
+            interpreter = it->second;
+        }
+        
+        if (!interpreter.empty())
+        {
+            char* argv[] = { const_cast<char*>(interpreter.c_str()), const_cast<char*>(scriptPath.c_str()), NULL };
+            execve(interpreter.c_str(), argv, envp.empty() ? NULL : &envp[0]);
+        }
+        else
+        {
+            char* argv[] = { const_cast<char*>(scriptPath.c_str()), NULL };
+            execve(scriptPath.c_str(), argv, envp.empty() ? NULL : &envp[0]);
+        }
+        write(out_fd[1], "E", 1);
         for (size_t i = 0; i < envp.size(); ++i) delete[] envp[i];
         exit(1);
     }
@@ -259,13 +280,21 @@ void CGIHandler::startCGI(const std::string& scriptPath, const std::map<std::str
         char err = 0;
         ssize_t n = read(err_pipe[0], &err, 1);
         close(err_pipe[0]);
-        if (n == 1) {
+        if (n == 1)
+        {
             int status;
             waitpid(pid, &status, WNOHANG);
             pid = -1;
-            if (in_fd[1] != -1) { close(in_fd[1]); in_fd[1] = -1; }
-            if (out_fd[0] != -1) { close(out_fd[0]); out_fd[0] = -1; }
-            std::cerr << "[CGI] execve() failed in child for " << scriptPath << "\n";
+            if (in_fd[1] != -1)
+            {
+                close(in_fd[1]);
+                in_fd[1] = -1;
+            }
+            if (out_fd[0] != -1)
+            {
+                close(out_fd[0]);
+                out_fd[0] = -1;
+            }
             throw std::runtime_error(std::string("execve failed for ") + scriptPath);
         }
 
@@ -276,43 +305,39 @@ void CGIHandler::startCGI(const std::string& scriptPath, const std::map<std::str
 }
 
 
-
 void CGIHandler::readOutput()
 {
-    if (!started || finished || out_fd[0] == -1) return;
+    if (!started || finished || out_fd[0] == -1)
+        return;
+    char buf[4096];
 
-    char buf[1024];
-    while (true) {
+    while (true)
+    {
         ssize_t n = read(out_fd[0], buf, sizeof(buf));
-        if (n > 0) {
+        if (n > 0)
+        {
             buffer.append(buf, n);
             continue;
         }
-        else if (n == 0) {
+        else if (n == 0)
+        {
             finished = true;
-            if (pid > 0) { waitpid(pid, NULL, WNOHANG); pid = -1;}
-            close(out_fd[0]); out_fd[0] = -1;
+            if (pid > 0)
+            {
+                waitpid(pid, NULL, WNOHANG);
+                pid = -1;
+            }
+            close(out_fd[0]);
+            out_fd[0] = -1;
             break;
         }
-        else {
-            // to fix no check on errno afater read or write
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-            {
-                break;
-            } else {
-                finished = true;
-                if (pid > 0) { waitpid(pid, NULL, WNOHANG); pid = -1; }
-                close(out_fd[0]); out_fd[0] = -1;
-                break;
-            }
-        }
+        else
+            break;
     }
 }
 
-
 void Client::checkCGIValid()
 {
-    // 1. Check Request Method Authorization (Nginx uses 405 Method Not Allowed)
     const std::vector<std::string>& allowedMethods = location->getMethod();
     const std::string& requestMethod = currentRequest->getMethod();
     bool methodAllowed = false;
@@ -327,16 +352,10 @@ void Client::checkCGIValid()
     }
 
     if (!methodAllowed)
-    {
-        std::cerr << "[CGI Check] Method " << requestMethod << " not allowed for path: " << currentRequest->getPath() << std::endl;
         return errorResponse(405, "METHOD NOT ALLOWED");
-    }
 
-    // 2. Determine if CGI processing is configured at all for this location
     const std::map<std::string, std::string>& cgiMap = location->getCgi();
     bool cgiConfigured = !cgiMap.empty();
-
-    // 3. Handle Path Resolution: Directory vs. File
 
     if (isDir(newPath))
     {
@@ -365,29 +384,17 @@ void Client::checkCGIValid()
         if (!indexFound)
         {
             if (location->getAutoIndex())
-            {
-                std::cout << "[CGI Check] Listing directory (Autoindex ON): " << newPath << std::endl;
                 return listingDirectory(newPath);
-            }
             else
-            {
-                std::cerr << "[CGI Check] Index file not found and autoindex is OFF: " << newPath << std::endl;
                 return errorResponse(403, "FORBIDDEN");
-            }
         }
     }
     else if (!isFile(newPath))
-    {
-        std::cerr << "[CGI Check] Resource not found: " << newPath << std::endl;
         return errorResponse(404, "NOT FOUND");
-    }
-
-    // 4. File Handling (Reached here if newPath is confirmed to be a regular file)
 
     if (cgiConfigured)
     {
         std::size_t dotPos = newPath.find_last_of('.');
-
         if (dotPos != std::string::npos)
         {
             std::string ext = newPath.substr(dotPos);
@@ -395,17 +402,13 @@ void Client::checkCGIValid()
             if (it != cgiMap.end())
             {
                 setIsCGI(true);
-                std::cout << "[CGI Check] Serving CGI script with interpreter: " << it->second << " for path: " << newPath << std::endl;
                 return;
             }
         }
     }
-
-    // 5. Default to Static File (Final Fallback)
     setIsCGI(false);
     if (currentRequest->getMethod() == "GET")
         handleGET();
     // else if (currentRequest->getMethod() == "POST")
     //     handlePOST();
-    std::cout << "[CGI Check] Serving static file: " << newPath << std::endl;
 }
