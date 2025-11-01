@@ -1,6 +1,10 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#define	REQUEST_TIMEOUT 10
+#define RESPONSE_TIMEOUT 30
+#define CGI_TIMEOUT 5
+
 #include <string>
 #include <iostream>
 #include <unistd.h>
@@ -20,8 +24,6 @@
 #include <dirent.h>
 #include <cstdio>
 
-
-class Server;
 class Client
 {
 	private:
@@ -45,11 +47,12 @@ class Client
 		std::string		endBoundry;
 		bool			inBody;
 		bool			finishBody;
+		time_t			lastActivityTime;
+		bool			isRequesting;
 
 		CGIHandler* cgiHandler;
 		bool		isCGI;
 		std::string newPath;
-		time_t last_activity;
 
 	public:
 		Client(int fd, Server* srv);
@@ -61,7 +64,7 @@ class Client
 		void				appendData(const char* buf, ssize_t length);
 		void				setBodySize(size_t size);
 		void				handleHeaders(const std::string& raw);
-		void				handleBody(const char* buf, ssize_t length);
+		void				handlePost(const char* buf, ssize_t length);
 		Request*			getRequest() const;
 		void				handleCompleteRequest();
 		Response& 			getResponse();
@@ -86,17 +89,20 @@ class Client
 		void			listingDirectory(std::string path);
 		std::string		constructFilePath(std::string uri);
 		void    		PrepareResponse(const std::string& path);
+		bool			isTimedOut();
+		void			setLastActivityTime(time_t time);
+		void			setIsRequesting(bool flag);
+		void    		handleBodyHeaders();
+		void    		handleInBody();
+		
 
 		
 		//Cgi added by mohamed
-		// std::string 			 executeCGI(const std::string& scriptPath, const std::string& interpreter);
 		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
-		// void 					 handleCGIResponse(const std::string& cgiOutput);
 		void					 checkCGIValid();
 		void 					 handleCGI();
 		bool					 getIsCGI() const { return isCGI; }
 		void 					 setIsCGI(bool val) {isCGI = val; }
-		std::string const& getBody() const { return body; }
 		void cleanupCGI()
 		{
 			if (cgiHandler)
@@ -104,22 +110,18 @@ class Client
 				delete cgiHandler;
 				cgiHandler = NULL;
 			}
-
 		}
-
-		void setCGIError(bool error);
-		size_t getCGIBytesWritten() const;
-		void addCGIBytesWritten(size_t bytes);
-		void appendCGIResponse(const char* buf, ssize_t length);
-		void setCGIComplete(bool complete);
-		Server* getServer() const;
-		CGIHandler* getCGIHandler();
-		bool validateCGIScript(const std::string& scriptPath);
-		time_t getLastActivity() const { return last_activity; }
-		void updateLastActivity() { last_activity = time(NULL); }
-		Request* getcurrentRequest();
-
-
+		bool isCgiTimedOut()
+		{
+			if (cgiHandler == NULL) {
+				return false;
+			}
+			if (!cgiHandler->isStarted())
+				return false;
+			
+			return (time(NULL) - cgiHandler->getStartTime() > CGI_TIMEOUT);
+		}
+		Request*	getCurrentRequest(){ return currentRequest;}
 };
 
 #endif

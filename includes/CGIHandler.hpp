@@ -20,30 +20,19 @@ private:
     bool started;
     bool finished;
     std::string buffer;
-    size_t bytes_written;
-    bool _error;
+     time_t _startTime;
 
 public:
     CGIHandler(Client* c);
     ~CGIHandler();
 
     void startCGI(const std::string& scriptPath, const std::map<std::string,std::string>& env);
+    void readOutput();
     bool isFinished() const;
     std::string getBuffer() const;
-
-    void setError(bool error);
-    size_t getBytesWritten() const;
-    void addBytesWritten(size_t bytes);
-    void appendResponse(const char* buf, ssize_t length);
-    void setComplete(bool complete);
-    int getPid() const;
-    bool isStarted() const;
-    bool isComplete() const;
-    int getStdinFd() const;
-    int getStdoutFd() const;
-    bool is_Error() const;
-
-
+    int getOutFD() const;
+    time_t getStartTime() const { return _startTime; }
+    bool    isStarted() const { return started; }
 };
 
 #endif
