@@ -13,7 +13,7 @@
 
 Server::Server()
 {
-	client_max_body_size = 1024;
+	client_max_body_size = 490367;
 }
 
 Server::~Server()
