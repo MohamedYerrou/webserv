@@ -37,7 +37,7 @@ void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, st
 
 void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 {
-	char	buf[30];
+	char	buf[70000];
 	Client* clientPtr = clients[fd];
 
 	ssize_t received = recv(clientPtr->getFD(), buf, sizeof(buf) - 1, 0);
@@ -60,12 +60,10 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 	else
 	{
 		buf[received] = '\0';
+		std::cout << "bytes recived: " << received << std::endl;
 		clientPtr->appendData(buf, received);
-		//step6: if request complete
 		if (clientPtr->getReqComplete())
 		{
-			// std::cout << "this will handle full request" << std::endl;
-			// std::cout << "method: " << clientPtr->getRequest()->getMethod() << std::endl;
 			if (!clientPtr->getRequestError())
 				clientPtr->handleCompleteRequest();
 			struct epoll_event ev;
@@ -77,52 +75,6 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 }
 
-
-// void	handleClientResponse(int fd, int epfd, Client* c)
-// {
-// 	(void) epfd;
-// 	(void) c;
-
-// 	std::string msg = "KKKKKKKKKKKKKKKLLLLLLLLLLLLLLLLL";
-// 	char body_size[50];
-// 	std::string body = "<html><body><h1>Hello from Webserv!<br>" + msg + "</h1></body></html>";
-// 	sprintf(body_size, "%d", (int)body.size());
-// 	std::string response = 
-// 		"HTTP/1.1 200 OK\r\n"
-// 		"Content-Length: " + std::string(body_size) + "\r\n"
-// 		"Content-Type: text/html\r\n"
-// 		"\r\n"
-// 		+ body;
-
-
-// 	send(fd, response.c_str(), response.size(), 0);
-// 	struct epoll_event ev;
-// 	ev.events = EPOLLIN;
-// 	ev.data.fd = fd;
-// 	if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
-// 		throw_exception("epoll_ctl: ", strerror(errno));
-// 	return ;
-
-// 	// int n = send(fd, c->getHeaders().c_str(), c->getHeaders().size(), 0);
-// 	// if (n == -1)
-// 	// 	throw_exception("send: ", strerror(errno));
-// 	// else
-// 	// {
-// 	// 	c.writeBuffer.erase(0, n);
-// 	// 	if (c.writeBuffer.empty())
-// 	// 	{
-// 	// 		struct epoll_event ev;
-// 	// 		ev.events = EPOLLIN;
-// 	// 		ev.data.fd = fd;
-
-// 	// 		if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
-// 	// 			throw_exception("epoll_ctl: ", strerror(errno));
-// 	// 		c.readBuffer.clear();
-// 	// 		return ;
-// 	// 	}
-// 	// }
-// }
-
 void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 {
 	Response currentResponse = clients[fd]->getResponse();
@@ -130,6 +82,7 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	ssize_t sent = send(fd, res.c_str(), res.length(), 0);
 	if ((std::size_t)sent == res.size())
 	{
+		// std::cout << res << std::endl;
 		std::cout << "Response has been sent" << std::endl;
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		clients.erase(fd);

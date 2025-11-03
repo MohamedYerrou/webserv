@@ -1,13 +1,14 @@
 server {
     listen 127.0.0.1:8080;
     listen 127.0.0.3:4242;
+    client_max_body_size 10000;
 
     location / {
-        root /home/noudrib/Desktop/webserv_group;
+        root /home/forrest/Desktop/webgroup;
         index index1.html;
         methods GET POST DELETE;
         autoindex on;
-        upload_store /home/noudrib/Desktop/webserv_group/www;
+        upload_store /home/forrest/Desktop/webgroup/www;
         error_page 403 /errors/403.html;
         error_page 301 /errors/301.html;
         error_page 500 /errors/500.html;

@@ -23,6 +23,15 @@ int stringToInt(const std::string& str, int base)
 {
     std::stringstream ss(str);
     int result;
+
+    if (str.empty())
+        return -1;
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        if (!isdigit(str[i]))
+            return -1;
+    }
+    
     if (base == 16)
         ss >> std::hex >> result;
     else
@@ -89,6 +98,9 @@ std::string getStatusText(int code)
             break;
         case 411:
             text = "Length Required";
+            break;
+        case 413:
+            text = "Content Too Large";
             break;
         case 500:
             text = "Internal Server Error";

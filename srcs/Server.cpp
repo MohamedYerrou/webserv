@@ -10,11 +10,12 @@
 #include <cerrno>
 #include <utility>
 #include <utility>
+#include <stdlib.h>
 
 Server::Server()
 {
 	client_max_body_size = 1024;
-	client_max_body_size = 1024;
+
 }
 
 Server::~Server()
@@ -28,8 +29,16 @@ const std::vector<Location>& Server::getLocations() const
 	return locations;
 }
 
-void    Server::push_listen(std::pair<std::string, int> pair)
+void    Server::push_listen(std::string tok)
 {
+	int							port;
+	std::string					ip;
+	std::pair<std::string, int> pair;
+
+	ip = tok.substr(0, tok.find(':'));
+	port = atoi(tok.substr(tok.find(':') + 1).c_str());
+	pair = make_pair(ip, port);
+
     listens.push_back(pair);
 }
 
@@ -37,6 +46,35 @@ void    Server::push_location(Location location)
 {
     locations.push_back(location);
 }
+
+void	Server::setMaxBodySize(std::string size)
+{
+	std::stringstream ss(size);
+
+	if (size.empty())
+		throw_exception("Empty max body size", "");
+	else
+	{
+		for (size_t i = 0; i < size.size(); i++)
+		{
+			if (!isdigit(size[i]))
+				throw_exception("Invalid max body size", "");
+		}
+	}
+	ss >> client_max_body_size;
+	std::cout << client_max_body_size << std::endl;
+}
+
+size_t	Server::getMaxBodySize()
+{
+	return client_max_body_size;
+}
+
+std::map<std::string, session>&	Server::getSessions()
+{
+	return sessions;
+}
+
 
 void    Server::init_server(int epfd, std::map<int, Server*>& server_fd)
 {

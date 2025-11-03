@@ -75,19 +75,9 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 			i++;
 		}
 		else if (tok == "listen" && inServer)
-		{
-			int							port;
-			std::string					ip;
-			std::pair<std::string, int> p;
-
-
-			tok = tokens[++i];
-			ip = tok.substr(0, tok.find(':'));
-			port = atoi(tok.substr(tok.find(':') + 1).c_str());
-			p = make_pair(ip, port);
-			currServer.push_listen(p);
-			i++;
-		}
+			currServer.push_listen(tokens[++i]);
+		else if (tok == "client_max_body_size" && inServer && !inLocation)
+			currServer.setMaxBodySize(tokens[++i]);
 		else if (tok == "location" && inServer && !inLocation)
 		{
 			inLocation = true;

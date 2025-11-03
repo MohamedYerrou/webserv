@@ -1,8 +1,10 @@
 #include "../includes/Request.hpp"
+#define BUF_SIZE 8192
 
 Request::Request()
     : uploadFile(-1), errorVersion(false)
 {
+    buffer.reserve(BUF_SIZE);
 }
 
 Request::~Request()
@@ -44,7 +46,7 @@ const std::map<std::string, std::string>& Request::getQueries() const
     return queries;
 }
 
-size_t  Request::getContentLength() const
+ssize_t  Request::getContentLength() const
 {
     std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
     if (it != headers.end())
@@ -52,8 +54,10 @@ size_t  Request::getContentLength() const
         int length = stringToInt(it->second);
         if (length >= 0)
             return static_cast<size_t>(length);
+        else
+            return -1;
     }
-    return 0;
+    return -2;
 }
 
 bool Request::parseMethod(const std::string& method)
@@ -262,6 +266,7 @@ std::string    Request::generateTmpFile(const std::string& target_path)
         fileName = target_path + "/uploadFile" + std::string(fileNumber);
     }
     uploadFile = open(fileName.c_str(), O_CREAT | O_RDWR, 0600);
+    std::cout << fileName << std::endl;
     if (uploadFile == -1)
         throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
     std::cout << "Temporary file has been created" << std::endl;

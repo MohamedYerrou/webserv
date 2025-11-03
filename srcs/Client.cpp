@@ -4,6 +4,10 @@ Client::Client(int fd, Server* srv)
     : fd(fd), endHeaders(false), reqComplete(false), hasBody(false), requestError(false), currentRequest(NULL), currentServer(srv), location(NULL)
 {
     bodySize = 0;
+    readPos = 0;
+    inPart = false;
+    headersParsed = false;
+	toAppend = 0;
 }
 
 Client::~Client()
@@ -33,6 +37,11 @@ bool    Client::getReqComplete() const
 bool    Client::getRequestError() const
 {
     return requestError;
+}
+
+ssize_t Client::getBodySize() const
+{
+    return  bodySize;
 }
 
 void    Client::setBodySize(size_t size)
@@ -191,6 +200,8 @@ void    Client::listingDirectory(std::string path)
     currentResponse.setHeaders("Content-Length", intTostring(buffer.length()));
     currentResponse.setHeaders("Date", currentDate());
     currentResponse.setHeaders("Connection", "close");
+    
+    currentResponse.setHeaders("Set-Cookie", "session_id=" + sess->id + ";");
 }
 
 void    Client::handleDirectory(const std::string& path)
@@ -245,20 +256,6 @@ void    Client::handleGET()
     }
 }
 
-// void    Client::handlePost()
-// {
-//     std::string		Content_type = currentRequest->getHeaders().at("Content-Type");
-//     std::fstream	body("testfile", std::ios::in);
-//     std::string		line;
-
-//     if (Content_type == "application/x-www-form-urlencoded")
-//         return ;
-//     else
-//     {
-
-//     }
-// }
-
 void    Client::handleCompleteRequest()
 {
     if (currentRequest->getMethod() == "GET")
@@ -268,7 +265,10 @@ void    Client::handleCompleteRequest()
           //TODO: handle delete mothod
     }
     else
+    {
+        // std::cout << "ooooooooooooooooooo" << std::endl;
         handlePost();
+    }
 }
 
 void    Client::errorResponse(int code, const std::string& error)
@@ -277,6 +277,7 @@ void    Client::errorResponse(int code, const std::string& error)
         location = findMathLocation(currentRequest->getPath());
     std::map<int, std::string> errors = location->getErrors();
     std::map<int, std::string>::iterator it = errors.find(code);
+    requestError = true;
     if (it != errors.end() && !it->second.empty())
     {
         std::string errorPage = it->second;
@@ -334,10 +335,25 @@ void    Client::handleHeaders(const std::string& raw)
         currentRequest->parseRequest(raw);
         // parsedRequest(*currentRequest);
         bodySize = currentRequest->getContentLength();
+        std::cout << "wa fin " << bodySize << std::endl;
         if (bodySize > 0 && currentRequest->getMethod() == "POST")
+        {
+			if ((size_t)bodySize > currentServer->getMaxBodySize())
+				errorResponse(413, "");
             hasBody = true;
-        else
-            reqComplete = true;
+        }
+        else if (bodySize == -1 && currentRequest->getMethod() == "POST")
+        {
+            errorResponse(400, "");
+            // reqComplete = true;
+        }
+        else if (bodySize == -2 && currentRequest->getMethod() == "POST")
+        {
+            errorResponse(411, "");
+            // reqComplete = true;
+        }
+        else 
+            reqComplete = true; 
     } catch (const std::exception& e)
     {
         reqComplete = true;
@@ -351,16 +367,6 @@ void    Client::handleHeaders(const std::string& raw)
             errorResponse(400, e.what());
         // std::cout << "Request error: " << e.what() << std::endl;
     }
-}
-
-void    Client::handleBody(const char* buf, ssize_t length)
-{
-    std::cout << "Buf: mmm" << buf << std::endl;
-    size_t toAppend = std::min((size_t)length, bodySize);
-    currentRequest->appendBody(buf, toAppend);
-    bodySize -= toAppend;
-    if (bodySize <= 0)
-        reqComplete = true;
 }
 
 const Location* Client::findBestMatch(const std::string uri)
@@ -395,11 +401,53 @@ std::string Client::constructFilePath(std::string uri)
     return path;
 }
 
+std::map<std::string, std::string>    Client::parseCookies(std::string cookieHeader)
+{
+    std::map<std::string, std::string> cookies;
+    std::stringstream   ss(cookieHeader);
+    std::string         pair;
+
+    while (getline(ss, pair, ';'))
+    {
+        size_t eq = pair.find('=');
+        std::string key = pair.substr(0, eq);
+        std::string value = pair.substr(eq + 1);
+        if (key[0] == ' ')
+            key.erase(0, 1);
+        cookies[key] = value;
+    }
+    return cookies;
+}
+
+void    Client::handleSession()
+{
+    if (currentRequest->getHeaders().count("Cookie") == 0)
+    {
+        std::string sid = generateSessionId();
+        currentServer->getSessions()[sid] = session();
+        currentServer->getSessions()[sid].id = sid;
+        sess = &currentServer->getSessions()[sid];
+        return ;
+    }
+    else
+        cookies = parseCookies(currentRequest->getHeaders().at("Cookie"));
+
+    if (cookies.count("session_id"))
+    {
+        std::string sid = cookies["session_id"];
+        if (currentServer->getSessions().count(sid))
+        {
+            sess = &currentServer->getSessions().at(sid);
+            sess->last_access = time(NULL);
+        }
+    }
+}
+
 void    Client::appendData(const char* buf, ssize_t length)
 {
     if (!endHeaders)
     {
-        std::cout << "Buf: " << buf << std::endl;
+        // std::cout << "Buf: " << buf << std::endl;
         headers.append(buf, length);
         std::size_t headerPos = headers.find("\r\n\r\n");
         if (headerPos != std::string::npos)
@@ -407,11 +455,17 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
+            handleSession();
             size_t bodyInHeader = headers.length() - headerPos;
-            if (hasBody && bodyInHeader > 0)
+            if (hasBody && bodyInHeader > 0 && requestError)
             {
-                std::string target_path = constructFilePath(currentRequest->getPath());
-                filename = currentRequest->generateTmpFile(target_path);
+                std::string bodyStart = headers.substr(headerPos);
+                drainSocket(bodyStart.size());
+            }
+            else if (hasBody && bodyInHeader > 0)
+            {
+                // std::string target_path = constructFilePath(currentRequest->getPath());
+                // filename = currentRequest->generateTmpFile(target_path);
                 std::string bodyStart = headers.substr(headerPos);
                 handleBody(bodyStart.c_str(), bodyStart.length());
             }
@@ -419,7 +473,9 @@ void    Client::appendData(const char* buf, ssize_t length)
     }
     else
     {
-        if (hasBody && !reqComplete)
+        if (hasBody && requestError)
+            drainSocket(length);
+        else if (hasBody && !reqComplete)
             handleBody(buf, length);
     }
 }

@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "Location.hpp"
+#include "session.hpp"
 
 
 class Server
@@ -14,14 +15,19 @@ class Server
 	std::vector<Location>						locations;
 	size_t										client_max_body_size;
 	std::vector<int>							listen_fd;
+	std::map<std::string, session>				sessions;
 		
 	public:
 	Server();
 	~Server();
-	void							push_listen(std::pair<std::string, int>);
+	void							push_listen(std::string);
 	void							push_location(Location);
 	void							init_server(int epfd, std::map<int, Server*>& fd_vect);
 	const std::vector<Location>&	getLocations() const;
+	void							setMaxBodySize(std::string size);
+	size_t							getMaxBodySize();
+	std::map<std::string, session>&	getSessions();
+
 };
 
 #endif

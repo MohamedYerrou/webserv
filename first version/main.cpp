@@ -222,7 +222,7 @@ void	run_server(int epfd, std::vector<int>& fd_vect)
 				else
 				{
 					buf[n] = '\0';
-					std::cout << buf << std::endl;
+					std::cout << << std::endl;
 					std::string response =
 						"HTTP/1.1 200 OK\r\n"
 						"Content-Length: 5\r\n"

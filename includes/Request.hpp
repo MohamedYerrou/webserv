@@ -26,7 +26,9 @@ class Request
 		std::map<std::string, std::string>	headers;
 		std::map<std::string, std::string>	queries;
 		bool								errorVersion;
+		
 	public:
+		std::vector<char>					buffer;
 		Request();
 		~Request();
 		bool										getErrorVersion();
@@ -39,7 +41,7 @@ class Request
 		void										parseRequest(const std::string& raw);
 		void										parseLine(const std::string& raw);
 		void										parseHeaders(const std::string& raw);
-		size_t										getContentLength() const;
+		ssize_t										getContentLength() const;
 		bool										parseMethod(const std::string& method);
 		bool										parseUri(const std::string& uri);
 		std::string									normalizePath(const std::string& path);

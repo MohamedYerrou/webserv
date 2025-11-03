@@ -10,7 +10,9 @@ SRC = main.cpp \
 	srcs/run_server.cpp \
 	srcs/Request.cpp \
 	srcs/Response.cpp \
-	srcs/Utils.cpp
+	srcs/Utils.cpp\
+	srcs/Post.cpp\
+	srcs/session.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
