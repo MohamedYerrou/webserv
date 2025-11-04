@@ -30,35 +30,60 @@ void    Location::push_method(std::string& method)
     _methods.push_back(method);
 }
 
-void    Location::push_index(std::string& index)
+void    Location::push_index(std::vector<std::string>& tokens, size_t& i)
 {
-    _index.push_back(index);
+    while (tokens[++i] != ";")
+        _index.push_back(tokens[i]);
+        // currLocation.push_index(tokens[i]);
 }
 
-void    Location::insert_cgi(std::pair<std::string, std::string>  cgi)
+void    Location::insert_cgi(std::vector<std::string>& tokens, size_t& i)
 {
-    _cgi.insert(cgi);
+    std::string	ext = tokens[++i];
+    std::string path = tokens[++i];
+    _cgi.insert(make_pair(ext, path));
 }
 
-void    Location::insert_error(std::pair<int, std::string> error)
+// void    Location::insert_error(std::pair<int, std::string> error)
+// {
+//     _errors.insert(error);
+// }
+
+void    Location::insert_error(std::vector<std::string>& tokens, size_t& i)
 {
-    _errors.insert(error);
+    int			code;
+    std::string	path;
+
+    code = atoi(tokens[++i].c_str());
+    path = tokens[++i];
+    _errors.insert(make_pair(code, path));
 }
 
-void    Location::set_redir(std::pair<int, std::string> redir)
+void    Location::set_redir(std::vector<std::string>& tokens, size_t& i)
 {
-    _http_redirection = redir;
+    int			status;
+    std::string	path;
+    
+    status = atoi(tokens[++i].c_str());
+    path = tokens[++i];
+    // currLocation.set_redir(make_pair(status, path));
+    _http_redirection = make_pair(status, path);
+    isRedirection = true;
+    // this->set_isRedirection(true);
+
+
 }
 
-void    Location::set_autoIndex(bool flag)
+void    Location::set_autoIndex(std::vector<std::string>& tokens, size_t& i)
 {
-    _autoindex = flag;
+    if (tokens[++i] == "on")
+        _autoindex = true;
 }
 
-void    Location::set_isRedirection(bool flag)
-{
-    isRedirection = flag;
-}
+// void    Location::set_isRedirection(bool flag)
+// {
+//     isRedirection = flag;
+// }
 
 //GETTERS
 

@@ -42,9 +42,10 @@ void    Server::push_listen(std::string tok)
     listens.push_back(pair);
 }
 
-void    Server::push_location(Location location)
+void    Server::push_location(Location location, bool& inLocation)
 {
     locations.push_back(location);
+	inLocation = false;
 }
 
 void	Server::setMaxBodySize(std::string size)

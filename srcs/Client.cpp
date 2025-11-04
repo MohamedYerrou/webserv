@@ -161,6 +161,8 @@ void    Client::handleFile(const std::string& path)
         currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
         currentResponse.setHeaders("Date", currentDate());
         currentResponse.setHeaders("Connection", "close");
+        if (sess)
+            currentResponse.setHeaders("Set-Cookie", "session_id=" + sess->id);
     }
     else
     {
@@ -200,8 +202,8 @@ void    Client::listingDirectory(std::string path)
     currentResponse.setHeaders("Content-Length", intTostring(buffer.length()));
     currentResponse.setHeaders("Date", currentDate());
     currentResponse.setHeaders("Connection", "close");
-    
-    currentResponse.setHeaders("Set-Cookie", "session_id=" + sess->id + ";");
+    if (sess)
+        currentResponse.setHeaders("Set-Cookie", "session_id=" + sess->id);
 }
 
 void    Client::handleDirectory(const std::string& path)
@@ -245,6 +247,8 @@ void    Client::handleGET()
             return;
         }
         std::string totalPath = joinPath();
+        std::cout << totalPath << std::endl;
+        std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
         if (isDir(totalPath))
         {
             handleDirectory(totalPath);
@@ -333,21 +337,20 @@ void    Client::handleHeaders(const std::string& raw)
     {
         currentRequest = new Request();
         currentRequest->parseRequest(raw);
-        // parsedRequest(*currentRequest);
         bodySize = currentRequest->getContentLength();
-        std::cout << "wa fin " << bodySize << std::endl;
-        if (bodySize > 0 && currentRequest->getMethod() == "POST")
+        if (currentRequest->getMethod() == "POST" && bodySize > 0)
         {
-			if ((size_t)bodySize > currentServer->getMaxBodySize())
-				errorResponse(413, "");
+            if ((size_t)bodySize > currentServer->getMaxBodySize())
+            errorResponse(413, "");
             hasBody = true;
+            std::cout << "rrrrrrrr " << bodySize << std::endl;
         }
-        else if (bodySize == -1 && currentRequest->getMethod() == "POST")
+        else if (currentRequest->getMethod() == "POST" && bodySize == -1)
         {
             errorResponse(400, "");
             // reqComplete = true;
         }
-        else if (bodySize == -2 && currentRequest->getMethod() == "POST")
+        else if (currentRequest->getMethod() == "POST" && bodySize == -2)
         {
             errorResponse(411, "");
             // reqComplete = true;
@@ -455,10 +458,12 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
-            handleSession();
+            // handleSession();
             size_t bodyInHeader = headers.length() - headerPos;
+            std::cout << "bodyInHeader: " << bodyInHeader << std::endl;
             if (hasBody && bodyInHeader > 0 && requestError)
             {
+                std::cout << "kkkkkkkkkkkkkkkkkkkkkk" << std::endl;
                 std::string bodyStart = headers.substr(headerPos);
                 drainSocket(bodyStart.size());
             }

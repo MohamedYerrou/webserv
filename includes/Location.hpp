@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <stdlib.h>
 
 class Location
 {
@@ -27,11 +28,11 @@ public:
 	void	set_root(std::string& root);
 	void	set_upload_store(std::string& upload_store);
 	void	push_method(std::string& method);
-	void	push_index(std::string& index);
-	void	insert_cgi(std::pair<std::string, std::string>  cgi);
-	void	insert_error(std::pair<int, std::string>  error);
-	void	set_redir(std::pair<int, std::string> redir);
-	void	set_autoIndex(bool flag);
+	void	push_index(std::vector<std::string>& tokens, size_t& i);
+	void	insert_cgi(std::vector<std::string>& tokens, size_t& i);
+	void	insert_error(std::vector<std::string>& tokens, size_t& i);
+	void	set_redir(std::vector<std::string>& tokens, size_t& i);
+	void	set_autoIndex(std::vector<std::string>& tokens, size_t& i);
 	void	set_isRedirection(bool flag);
 
     //GETTERS

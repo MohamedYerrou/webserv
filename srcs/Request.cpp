@@ -51,7 +51,15 @@ ssize_t  Request::getContentLength() const
     std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
     if (it != headers.end())
     {
-        int length = stringToInt(it->second);
+        std::string str = it->second;
+        if (str.empty())
+            return -1;
+        for (size_t i = 0; i < str.size(); i++)
+        {
+            if (!isdigit(str[i]))
+                return -1;
+        }
+        int length = stringToInt(str);
         if (length >= 0)
             return static_cast<size_t>(length);
         else

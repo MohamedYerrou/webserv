@@ -89,10 +89,10 @@ void	Client::multiPartData(const char* chunk, ssize_t length)
 	size_t				boundaryPos = 0;
 	// size_t				toAppend = 0;
 
-	std::cout << "length " << length << std::endl;
-	std::cout << "bodysize" << bodySize << std::endl;
+	// std::cout << "length " << length << std::endl;
+	// std::cout << "bodysize" << bodySize << std::endl;
 	toAppend += std::min(length, bodySize);
-	std::cout << "eeee " << toAppend << std::endl;
+	// std::cout << "eeee " << toAppend << std::endl;
     buf.insert(buf.end(), chunk, chunk + toAppend);
 	boundaryPos = findBoundary(buf, boundary, readPos);
 	if (boundaryPos != std::string::npos)
@@ -172,7 +172,7 @@ void	Client::multiPartData(const char* chunk, ssize_t length)
 
 
 		if (!partFilename.empty())
-			out.open(("/home/forrest/Desktop/webgroup/" + partFilename).c_str(), std::ios::binary);
+			out.open(("/home/noudrib/Desktop/webserv_group/" + partFilename).c_str(), std::ios::binary);
 
 		if (!out.is_open())
 			std::cerr << "can't open the file" << std::endl;
