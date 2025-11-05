@@ -6,6 +6,7 @@
 #include <map>
 #include <stdint.h>
 #include "Location.hpp"
+#include "Session.hpp"
 
 class Client;
 typedef struct s_CGIContext 
@@ -30,6 +31,7 @@ class Server
 	std::vector<Location>						locations;
 	std::map<int , CGIContext> 					CGIstdIn;
 	std::map<int , CGIContext> 					CGIstdOut;
+	std::map<std::string, Session>				sessions;
 	std::vector<int>							listen_fd;
 	size_t										client_max_body_size;
 
@@ -37,14 +39,16 @@ class Server
 	public:
 	Server();
 	~Server();
-	void							push_listen(std::pair<std::string, int>);
-	void							push_location(Location);
+	void							push_listen(std::string);
+	void							push_location(Location location, bool& inLocation);
 	void							init_server(int epfd, std::map<int, Server*>& fd_vect);
 	const std::vector<Location>&	getLocations() const;
-	size_t							getMaxSize() const;
+	void							setMaxBodySize(std::string size);
+	size_t							getMaxBodySize();
 	void							addCgiIn(CGIContext CGIctx, int fd);
 	void							addCgiOut(CGIContext CGIctx, int fd);
 	static bool						handleCGIEvent(int epfd, int fd, uint32_t event_flags, std::map<int, Server*>& servers_fd, std::map<int, Client*>& clients);
+	std::map<std::string, Session>&	getSessions();
 };
 
 #endif

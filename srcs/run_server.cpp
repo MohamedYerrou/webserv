@@ -64,8 +64,6 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients, std:
 		{
 			if (!clientPtr->getRequestError())
 				clientPtr->handleCompleteRequest();
-			clientPtr->setLastActivityTime(time(NULL));
-			clientPtr->setIsRequesting(false);
 
 			if (clientPtr->getCGIHandler() && clientPtr->getCGIHandler()->isStarted()
 				&& !clientPtr->getCGIHandler()->isComplete())
@@ -273,7 +271,14 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 	for (it = clients.begin(); it != clients.end(); )
 	{
 		Client* client = it->second;
-		if (client && (client->isTimedOut() || (client->getIsCGI() && client->isCgiTimedOut())))
+		if (client->isTimedOut())
+		{
+			epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
+			close(it->first);
+			delete client;
+			clients.erase(it++);
+		}
+		else if (client && (client->getIsCGI() && client->isCgiTimedOut()))
 		{
 			if (client->getIsCGI() && client->isCgiTimedOut() && client->getCGIHandler())
 			{

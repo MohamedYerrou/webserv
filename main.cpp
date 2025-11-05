@@ -75,19 +75,9 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 			i++;
 		}
 		else if (tok == "listen" && inServer)
-		{
-			int							port;
-			std::string					ip;
-			std::pair<std::string, int> p;
-
-
-			tok = tokens[++i];
-			ip = tok.substr(0, tok.find(':'));
-			port = atoi(tok.substr(tok.find(':') + 1).c_str());
-			p = make_pair(ip, port);
-			currServer.push_listen(p);
-			i++;
-		}
+			currServer.push_listen(tokens[++i]);
+		else if (tok == "client_max_body_size" && inServer && !inLocation)
+			currServer.setMaxBodySize(tokens[++i]);
 		else if (tok == "location" && inServer && !inLocation)
 		{
 			inLocation = true;
@@ -95,55 +85,32 @@ std::vector<Server> parser(std::vector<std::string>& tokens)
 			currLocation.set_path(tokens[++i]);
 		}
 		else if (tok == "error_page" && inServer && inLocation)
-		{
-			int			code;
-			std::string	path;
-
-			code = atoi(tokens[++i].c_str());
-			path = tokens[++i];
-			currLocation.insert_error(make_pair(code, path));
-		}
+			currLocation.insert_error(tokens, i);
 		else if (tok == "}" && inLocation)
-		{
-			currServer.push_location(currLocation);
-			inLocation = false;
-		}
+			currServer.push_location(currLocation, inLocation);
 		else if (tok == "root" && inLocation)
 			currLocation.set_root(tokens[++i]);
 		else if (tok == "index" && inLocation)
-		{
-			while (tokens[++i] != ";")
-				currLocation.push_index(tokens[i]);
-		}
+			currLocation.push_index(tokens, i);
 		else if (tok == "upload_store" && inLocation)
 			currLocation.set_upload_store(tokens[++i]);
 		else if (tok == "methods" && inLocation)
 		{
 			i++;
-			while (tokens[i] == "GET" || tokens[i] == "POST" || tokens[i] == "DELETE")
-				currLocation.push_method(tokens[i++]);
+			while (tokens[i] != ";")
+			{
+				if (tokens[i] != "GET" && tokens[i] != "POST" && tokens[i] != "DELETE")
+					throw_exception("Invalid method: ", tokens[i]);
+				else
+					currLocation.push_method(tokens[i++]);
+			}
 		}
 		else if (tok == "cgi" && inLocation)
-		{
-			std::string	ext = tokens[++i];
-			std::string path = tokens[++i];
-			currLocation.insert_cgi(make_pair(ext, path));
-		}
+			currLocation.insert_cgi(tokens, i);
 		else if (tok == "return" && inLocation)
-		{
-			std::string	path;
-			int			status;
-			
-			status = atoi(tokens[++i].c_str());
-			path = tokens[++i];
-			currLocation.set_redir(make_pair(status, path));
-			currLocation.set_isRedirection(true);
-		}
+			currLocation.set_redir(tokens, i);
 		else if (tok == "autoindex")
-		{
-			if (tokens[++i] == "on")
-				currLocation.set_autoIndex(true);
-		}
+			currLocation.set_autoIndex(tokens, i);
 		else if (tok == "}" && inServer && !inLocation)
 		{
 			config.push_back(currServer);

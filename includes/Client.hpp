@@ -2,7 +2,6 @@
 #define CLIENT_HPP
 
 #define	REQUEST_TIMEOUT 50
-#define RESPONSE_TIMEOUT 30
 #define CGI_TIMEOUT 30
 
 #include <string>
@@ -23,6 +22,7 @@
 #include <fstream>
 #include <dirent.h>
 #include <cstdio>
+#include "Session.hpp"
 
 class Server;
 
@@ -50,7 +50,8 @@ class Client
 		bool			inBody;
 		bool			finishBody;
 		time_t			lastActivityTime;
-		bool			isRequesting;
+		Session*							sess;
+		std::map<std::string, std::string>	cookies;
 
 		CGIHandler* cgiHandler;
 		bool		isCGI;
@@ -92,11 +93,11 @@ class Client
 		std::string		constructFilePath(std::string uri);
 		void    		PrepareResponse(const std::string& path);
 		bool			isTimedOut();
-		void			setLastActivityTime(time_t time);
-		void			setIsRequesting(bool flag);
 		void    		handleBodyHeaders();
 		void    		handleInBody();
 		void    		handlePostError();
+		void    							handleSession();
+		std::map<std::string, std::string>  parseCookies(std::string);
 		
 
 		

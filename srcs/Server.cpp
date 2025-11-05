@@ -12,11 +12,16 @@
 
 Server::Server()
 {
-	client_max_body_size = 490367;
+	client_max_body_size = 1894340421;
 }
 
 Server::~Server()
 {
+}
+
+std::map<std::string, Session>&	Server::getSessions()
+{
+	return sessions;
 }
 
 //getters
@@ -26,17 +31,44 @@ const std::vector<Location>& Server::getLocations() const
 	return locations;
 }
 
-void    Server::push_listen(std::pair<std::string, int> pair)
+void    Server::push_listen(std::string tok)
 {
+	int							port;
+	std::string					ip;
+	std::pair<std::string, int> pair;
+
+	ip = tok.substr(0, tok.find(':'));
+	port = atoi(tok.substr(tok.find(':') + 1).c_str());
+	pair = make_pair(ip, port);
+
     listens.push_back(pair);
 }
 
-void    Server::push_location(Location location)
+void    Server::push_location(Location location, bool& inLocation)
 {
     locations.push_back(location);
+	inLocation = false;
 }
 
-size_t							Server::getMaxSize() const
+void	Server::setMaxBodySize(std::string size)
+{
+	std::stringstream ss(size);
+
+	if (size.empty())
+		throw_exception("Empty max body size", "");
+	else
+	{
+		for (size_t i = 0; i < size.size(); i++)
+		{
+			if (!isdigit(size[i]))
+				throw_exception("Invalid max body size", "");
+		}
+	}
+	ss >> client_max_body_size;
+	std::cout << client_max_body_size << std::endl;
+}
+
+size_t	Server::getMaxBodySize()
 {
 	return client_max_body_size;
 }

@@ -1,4 +1,5 @@
 #include "../includes/Client.hpp"
+#include "../includes/Session.hpp"
 
 Client::Client(int fd, Server* srv)
     : fd(fd),
@@ -22,7 +23,6 @@ Client::Client(int fd, Server* srv)
     inBody = false;
     finishBody = false;
     lastActivityTime = time(NULL);
-	isRequesting = true;
 }
 
 Client::~Client()
@@ -88,24 +88,53 @@ void				Client::setSentAll(bool flag)
     sentAll = flag;
 }
 
-void			Client::setLastActivityTime(time_t time)
-{
-    lastActivityTime = time;
-}
-
-void			Client::setIsRequesting(bool flag)
-{
-    isRequesting = flag;
-}
-
 bool			Client::isTimedOut()
 {
     time_t currentTime = time(NULL);
     time_t elapsed = currentTime - lastActivityTime;
-    if (isRequesting)
-        return elapsed > REQUEST_TIMEOUT;
+    return elapsed > REQUEST_TIMEOUT;
+}
+
+std::map<std::string, std::string>    Client::parseCookies(std::string cookieHeader)
+{
+    std::map<std::string, std::string> cookies;
+    std::stringstream   ss(cookieHeader);
+    std::string         pair;
+
+    while (getline(ss, pair, ';'))
+    {
+        size_t eq = pair.find('=');
+        std::string key = pair.substr(0, eq);
+        std::string value = pair.substr(eq + 1);
+        if (key[0] == ' ')
+            key.erase(0, 1);
+        cookies[key] = value;
+    }
+    return cookies;
+}
+
+void    Client::handleSession()
+{
+    if (currentRequest->getHeaders().count("Cookie") == 0)
+    {
+        std::string sid = generateSessionId();
+        currentServer->getSessions()[sid] = Session();
+        currentServer->getSessions()[sid].id = sid;
+        sess = &currentServer->getSessions()[sid];
+        return ;
+    }
     else
-        return elapsed > RESPONSE_TIMEOUT;
+        cookies = parseCookies(currentRequest->getHeaders().at("Cookie"));
+
+    if (cookies.count("session_id"))
+    {
+        std::string sid = cookies["session_id"];
+        if (currentServer->getSessions().count(sid))
+        {
+            sess = &currentServer->getSessions().at(sid);
+            sess->last_access = time(NULL);
+        }
+    }
 }
 
 bool    			Client::getContentType()
@@ -316,7 +345,7 @@ void    Client::handleHeaders(const std::string& raw)
         // parsedRequest(*currentRequest);
         bodySize = currentRequest->getContentLength();
         std::cout << "BODY TOTAL SIZE: " << bodySize << std::endl;
-        if (bodySize > currentServer->getMaxSize())
+        if (bodySize > currentServer->getMaxBodySize())
         {
             errorResponse(413, "Payload Too Large");
             reqComplete = true;
@@ -392,6 +421,7 @@ void    Client::handlePostError()
     else if (!isDir(location->getUploadStore()))
     {
         reqComplete = true;
+        std::cout << "NOT A DIRECTORY " << location->getUploadStore() <<  std::endl;
         errorResponse(422, "Unprocessable Content");
     }
     else if (access(location->getUploadStore().c_str(), X_OK | W_OK) == -1)

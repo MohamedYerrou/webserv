@@ -14,7 +14,8 @@ SRC = main.cpp \
 	srcs/Utils.cpp \
 	srcs/GET.cpp \
 	srcs/DELETE.cpp \
-	srcs/POST.cpp
+	srcs/POST.cpp \
+	srcs/Session.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
