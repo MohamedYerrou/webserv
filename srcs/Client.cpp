@@ -221,14 +221,33 @@ const Location*   Client::findMathLocation(std::string url)
 
 void Client::handleCompleteRequest()
 {
-    location = findMathLocation(currentRequest->getPath());
-    newPath = joinPath();
-    if (location->getPATH() == "/cgi")
-        checkCGIValid();
-    if (currentRequest->getMethod() == "GET")
-        handleGET();
-    else if (currentRequest->getMethod() == "DELETE")
-        handleDELETE();
+	location = findMathLocation(currentRequest->getPath());
+	newPath = joinPath();
+	
+	// Check if this location has CGI configured
+	const std::map<std::string, std::string>& cgiMap = location->getCgi();
+	if (!cgiMap.empty())
+	{
+		try
+		{
+			checkCGIValid();
+			// If checkCGIValid() set isCGI and returned, we're done
+			if (getIsCGI())
+				return;
+		}
+		catch (const std::exception& e)
+		{
+			// CGI initialization failed - return 500 error
+			std::cerr << "CGI Error: " << e.what() << std::endl;
+			return errorResponse(500, "INTERNAL SERVER ERROR");
+		}
+	}
+	
+	// Not CGI or CGI not matched - handle as regular request
+	if (currentRequest->getMethod() == "GET")
+		handleGET();
+	else if (currentRequest->getMethod() == "DELETE")
+		handleDELETE();
 }
 
 

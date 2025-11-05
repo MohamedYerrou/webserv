@@ -3,7 +3,7 @@
 
 #define	REQUEST_TIMEOUT 50
 #define RESPONSE_TIMEOUT 30
-#define CGI_TIMEOUT 5
+#define CGI_TIMEOUT 30
 
 #include <string>
 #include <iostream>
@@ -23,6 +23,8 @@
 #include <fstream>
 #include <dirent.h>
 #include <cstdio>
+
+class Server;
 
 class Client
 {
@@ -99,11 +101,11 @@ class Client
 
 		
 		//Cgi added by mohamed
-		std::vector<std::string> buildCGIEnv(const std::string& scriptPath);
 		void					 checkCGIValid();
-		void 					 handleCGI();
 		bool					 getIsCGI() const { return isCGI; }
 		void 					 setIsCGI(bool val) {isCGI = val; }
+		Server*					 getServer() const { return currentServer; }
+		CGIHandler*				 getCGIHandler() const { return cgiHandler; }
 		void cleanupCGI()
 		{
 			if (cgiHandler)
