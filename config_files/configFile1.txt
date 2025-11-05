@@ -15,7 +15,6 @@ server {
         error_page 301 /errors/301.html;
         error_page 500 /errors/500.html;
         error_page 200 /errors/200.html;
-        return 301 https://www.youtube.com/watch?v=TU0AxQ2of7I&list=RDTU0AxQ2of7I&start_radio=1
     }
 
     location /upload {
