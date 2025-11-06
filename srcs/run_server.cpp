@@ -146,7 +146,6 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	std::string response;
 	if (cgi->hasError())
 	{
-		std::cerr << "hello hello " << std::endl;
 		int error_code = cgi->getErrorCode();
 		if (error_code == 0)
 			error_code = 500;
@@ -184,10 +183,7 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 				response = HTTP_ERROR_RESPONSE("502 Bad Gateway", error_body);
 			}
 			else
-			{
-				std::cout << "body is ==> : " << body << std::endl; 
 				response = "HTTP/1.1 200 OK\r\n" + body;
-			}
 		}
 		else
 		{

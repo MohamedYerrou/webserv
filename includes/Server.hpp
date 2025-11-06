@@ -45,6 +45,9 @@ class Server
 	void							addCgiIn(CGIContext CGIctx, int fd);
 	void							addCgiOut(CGIContext CGIctx, int fd);
 	static bool						handleCGIEvent(int epfd, int fd, uint32_t event_flags, std::map<int, Server*>& servers_fd, std::map<int, Client*>& clients);
+	static void						handleCGIStdinEvent(int epfd, int fd, uint32_t event_flags, Server* server);
+	static void						handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server* server, std::map<int, Client*>& clients);
+	static void						cleanupCGIPipe(int epfd, int fd, Server* server, bool is_stdin);
 };
 
 #endif

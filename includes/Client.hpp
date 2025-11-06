@@ -76,55 +76,43 @@ class Client
 		bool    			getContentType();
 		
 		//handle methods
-		const Location*	findMathLocation(std::string url);
-		const Location* 		findBestMatch(const std::string uri);
-		std::string		joinPath();
-		void			handleGET();
-        void            handleDELETE();
-        void            handleDeleteFile(std::string totalPath);
-        void            handleDeleteDir(std::string totalPath);
-		bool			allowedMethod(const std::string& method);
-		void			handleRedirection();
-		void			errorResponse(int code, const std::string& error);
-		void			handleDirectory(const std::string& path);
-		void			handleFile();
-		void			listingDirectory(std::string path);
-		std::string		constructFilePath(std::string uri);
-		void    		PrepareResponse(const std::string& path);
-		bool			isTimedOut();
-		void			setLastActivityTime(time_t time);
-		void			setIsRequesting(bool flag);
-		void    		handleBodyHeaders();
-		void    		handleInBody();
-		void    		handlePostError();
-		
-
+		const Location*		findMathLocation(std::string url);
+		const Location*		findBestMatch(const std::string uri);
+		std::string			joinPath();
+		void				handleGET();
+        void            	handleDELETE();
+        void            	handleDeleteFile(std::string totalPath);
+        void            	handleDeleteDir(std::string totalPath);
+		bool				allowedMethod(const std::string& method);
+		void				handleRedirection();
+		void				errorResponse(int code, const std::string& error);
+		void				handleDirectory(const std::string& path);
+		void				handleFile();
+		void				listingDirectory(std::string path);
+		std::string			constructFilePath(std::string uri);
+		void    			PrepareResponse(const std::string& path);
+		bool				isTimedOut();
+		void				setLastActivityTime(time_t time);
+		void				setIsRequesting(bool flag);
+		void    			handleBodyHeaders();
+		void    			handleInBody();
+		void    			handlePostError();
 		
 		//Cgi added by mohamed
-		void					 checkCGIValid();
-		bool					 getIsCGI() const { return isCGI; }
-		void 					 setIsCGI(bool val) {isCGI = val; }
-		Server*					 getServer() const { return currentServer; }
-		CGIHandler*				 getCGIHandler() const { return cgiHandler; }
-		void cleanupCGI()
-		{
-			if (cgiHandler)
-			{
-				delete cgiHandler;
-				cgiHandler = NULL;
-			}
-		}
-		bool isCgiTimedOut()
-		{
-			if (cgiHandler == NULL) {
-				return false;
-			}
-			if (!cgiHandler->isStarted())
-				return false;
-			
-			return (time(NULL) - cgiHandler->getStartTime() > CGI_TIMEOUT);
-		}
-		Request*	getCurrentRequest(){ return currentRequest;}
+		void				checkCGIValid();
+		bool				getIsCGI() const;
+		void 				setIsCGI(bool val);
+		Server*				getServer() const;
+		CGIHandler*			getCGIHandler() const;
+		void				cleanupCGI();
+		bool				isCgiTimedOut();
+		Request*			getCurrentRequest();
+		std::string			findActualScriptPath(const std::map<std::string, std::string>& cgiMap);
+		void				buildCGIEnvironment(std::map<std::string, std::string>& env);
+		void				setCGIPathVariables(std::map<std::string, std::string>& env, const std::string& fullPath);
+		void				setCGIServerVariables(std::map<std::string, std::string>& env, const std::map<std::string, std::string>& headers);
+		void				setCGIContentVariables(std::map<std::string, std::string>& env, const std::map<std::string, std::string>& headers);
+		void				setCGIHttpHeaders(std::map<std::string, std::string>& env, const std::map<std::string, std::string>& headers);
 };
 
 #endif

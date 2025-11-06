@@ -281,3 +281,31 @@ void    parsedRequest(Request req)
         std::cout << it->first << "=  " << it->second << std::endl;
     }
 }
+
+std::string urlDecode(const std::string& str)
+{
+    std::string result;
+    result.reserve(str.length());
+    
+    for (size_t i = 0; i < str.length(); ++i)
+    {
+        if (str[i] == '%' && i + 2 < str.length())
+        {
+            int value = 0;
+            std::istringstream iss(str.substr(i + 1, 2));
+            if (iss >> std::hex >> value)
+            {
+                result += static_cast<char>(value);
+                i += 2;
+            }
+            else
+                result += str[i];
+        }
+        else if (str[i] == '+')
+            result += ' ';
+        else
+            result += str[i];
+    }
+    
+    return result;
+}
