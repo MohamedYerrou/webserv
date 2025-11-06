@@ -3,7 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <string>
-#include <utility> 
+#include <utility>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -135,14 +135,16 @@ void	throw_exception(std::string function, std::string err)
 
 int main(int ac, char** av)
 {
-	std::vector<std::string>	tokens;
-	std::vector<Server>			servers;
-	std::map<int, Server*>		servers_fd;
 
 	try
 	{
-		tokenizer(tokens, (ac != 2 ? "config_files/configFile1.txt" : av[1]));
-		servers = parser(tokens);
+		std::vector<Server>			servers;
+		std::map<int, Server*>		servers_fd;
+		{
+			std::vector<std::string>	tokens;
+			tokenizer(tokens, (ac != 2 ? "config_files/configFile1.txt" : av[1]));
+			servers = parser(tokens);
+		}
 		int epfd = epoll_create(1);
 		for (size_t i = 0; i < servers.size(); ++i) {
             servers[i].init_server(epfd, servers_fd);

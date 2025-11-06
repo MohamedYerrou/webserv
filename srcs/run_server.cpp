@@ -1,6 +1,6 @@
 #include <fstream>
 #include <sstream>
-#include <utility> 
+#include <utility>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -69,7 +69,7 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients, std:
 				&& !clientPtr->getCGIHandler()->isComplete())
 			{
 				Server* server = clientPtr->getServer();
-				
+
 				CGIContext ctx;
 				ctx.childpid = clientPtr->getCGIHandler()->getPid();
 				ctx.clientfd = fd;
@@ -82,10 +82,10 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients, std:
 				ctx.pipe_from_cgi = clientPtr->getCGIHandler()->getStdoutFd();
 				ctx.is_error = false;
 				ctx.client = clientPtr;
-				
+
 				server->addCgiIn(ctx, epfd);
 				server->addCgiOut(ctx, epfd);
-				
+
 				// struct epoll_event ev;
 				// ev.events = 0;
 				// ev.data.fd = fd;
@@ -112,7 +112,7 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		client->handleFile();
 		Response& currentResponse = client->getResponse();
 		std::string res = currentResponse.build();
-		// std::cout << "Building res: " << res << std::endl;
+		std::cout << "Building res: " << res << std::endl;
 		ssize_t sent = send(fd, res.c_str(), res.length(), 0);
 		if (sent == -1)
 		{
@@ -136,29 +136,29 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 {
 	Client* client = clients[fd];
-	
+
 	if (!client->getCGIHandler())
 	{
 		handleClientResponse(epfd, fd, clients);
 		return;
 	}
-	
+
 	CGIHandler* cgi = client->getCGIHandler();
-	
+
 	if (!cgi->isComplete())
 		return;
-	
+
 	std::string response;
-	
+
 	if (cgi->hasError())
 	{
 		int error_code = cgi->getErrorCode();
 		if (error_code == 0)
 			error_code = 500;
-		
+
 		std::string error_body = "<!DOCTYPE html><html><head><title>CGI Error</title></head><body>";
 		error_body += "<h1>CGI Error</h1>";
-		
+
 		if (error_code == 500)
 			error_body += "<p>Internal Server Error - CGI script execution failed.</p>";
 		else if (error_code == 502)
@@ -167,12 +167,12 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			error_body += "<p>Gateway Timeout - CGI script took too long to respond.</p>";
 		else
 			error_body += "<p>An error occurred while processing the CGI request.</p>";
-		
+
 		error_body += "</body></html>";
-		
+
 		std::ostringstream oss;
 		oss << error_body.size();
-		
+
 		response = "HTTP/1.1 ";
 		if (error_code == 500)
 			response += "500 Internal Server Error\r\n";
@@ -182,7 +182,7 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			response += "504 Gateway Timeout\r\n";
 		else
 			response += "500 Internal Server Error\r\n";
-		
+
 		response += "Content-Type: text/html\r\n";
 		response += "Content-Length: " + oss.str() + "\r\n";
 		response += "Connection: close\r\n\r\n";
@@ -191,7 +191,7 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	else
 	{
 		std::string body = cgi->getBuffer();
-		
+
 		if (body.size() == 1 && body[0] == 'E')
 		{
 			std::string error_body = HTML_ERROR_502;
@@ -199,10 +199,10 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			// error_body += "<h1>502 Bad Gatway</h1>";
 			// error_body += "<p>The CGI script could not be executed. Check script permissions and interpreter path.</p>";
 			// error_body += "</body></html>";
-			
+
 			std::ostringstream oss;
 			oss << error_body.size();
-			
+
 			response = "HTTP/1.1 502 Bad Gatwayr\r\n";
 			response += "Content-Type: text/html\r\n";
 			response += "Content-Length: " + oss.str() + "\r\n";
@@ -216,17 +216,17 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			size_t separator_pos = body.find("\r\n\r\n");
 			if (separator_pos == std::string::npos)
 				separator_pos = body.find("\n\n");
-			
+
 			if (separator_pos == std::string::npos)
 			{
 				std::string error_body = "<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body>";
 				error_body += "<h1>502 Bad Gateway</h1>";
 				error_body += "<p>The CGI script produced invalid output (incomplete headers).</p>";
 				error_body += "</body></html>";
-				
+
 				std::ostringstream oss;
 				oss << error_body.size();
-				
+
 				response = "HTTP/1.1 502 Bad Gateway\r\n";
 				response += "Content-Type: text/html\r\n";
 				response += "Content-Length: " + oss.str() + "\r\n";
@@ -238,15 +238,15 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		}
 		else
 		{
-			std::string error_body = HTML_ERROR_502; 
+			std::string error_body = HTML_ERROR_502;
 			// "<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body>";
 			// error_body += "<h1>502 Bad Gateway</h1>";
 			// error_body += "<p>The CGI script produced invalid output (no CGI headers found).</p>";
 			// error_body += "</body></html>";
-			
+
 			std::ostringstream oss;
 			oss << error_body.size();
-			
+
 			response = "HTTP/1.1 502 Bad Gateway\r\n";
 			response += "Content-Type: text/html\r\n";
 			response += "Content-Length: " + oss.str() + "\r\n";
@@ -254,7 +254,7 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			response += error_body;
 		}
 	}
-	
+
 	ssize_t sent = send(fd, response.c_str(), response.length(), 0);
 	if (sent == -1)
 		std::cout << "CGI Sent Error: " << strerror(errno) << std::endl;
@@ -302,11 +302,11 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 				std::string str = "HTTP/1.1 408 Request Timeout\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";
 				str += "<!DOCTYPE html><html><head><title>408 Request Timeout</title></head><body>";
 				str += "<h1>408 Request Timeout</h1><p>The request took too long to complete.</p></body></html>";
-				
+
 				ssize_t sent = send(it->first, str.c_str(), str.length(), 0);
 				if (sent == -1)
 					std::cout << "Error: " << strerror(errno) << std::endl;
-				
+
 				epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
 				close(it->first);
 				delete client;
@@ -347,7 +347,7 @@ void run_server(int epfd, std::map<int, Server*>& servers_fd)
 				close(fd);
 				continue;
 			}
-			
+
 			Client* client = clients[fd];
             if (event_flags & EPOLLIN)
 				handleClientRequest(epfd, fd, clients, servers_fd);
