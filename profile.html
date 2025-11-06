@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Profile — Test Cookie/Session</title>
+</head>
+<body>
+  <h1>Profile (GET /profile)</h1>
+  <p>If your session cookie is valid, the server should return personalized content (e.g. "Welcome back, &lt;username&gt;").</p>
+
+  <hr/>
+  <h3>Client-side cookie (browser)</h3>
+  <pre id="ck">document.cookie = ...</pre>
+  <script>
+    document.getElementById('ck').textContent = 'document.cookie → ' + document.cookie;
+  </script>
+</body>
+</html>
