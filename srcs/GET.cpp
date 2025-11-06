@@ -79,6 +79,8 @@ void    Client::PrepareResponse(const std::string& path)
     currentResponse.setHeaders("Content-Length", intTostring(getFileSize(path)));
     currentResponse.setHeaders("Date", currentDate());
     currentResponse.setHeaders("Connection", "close");
+    if (sess)
+        currentResponse.setHeaders("Set-Cookie", "session_id=" + sess->id);
 }
 
 void    Client::handleDirectory(const std::string& path)

@@ -23,6 +23,7 @@ Client::Client(int fd, Server* srv)
     inBody = false;
     finishBody = false;
     lastActivityTime = time(NULL);
+    sess = NULL;
 }
 
 Client::~Client()
@@ -115,16 +116,21 @@ std::map<std::string, std::string>    Client::parseCookies(std::string cookieHea
 
 void    Client::handleSession()
 {
-    if (currentRequest->getHeaders().count("Cookie") == 0)
+    if (currentRequest->getHeaders().count("cookie") == 0)
     {
+        std::cout << "First cookie" << std::endl;
         std::string sid = generateSessionId();
         currentServer->getSessions()[sid] = Session();
         currentServer->getSessions()[sid].id = sid;
         sess = &currentServer->getSessions()[sid];
+        sess->data = currentRequest->getQueries();
         return ;
     }
     else
-        cookies = parseCookies(currentRequest->getHeaders().at("Cookie"));
+    {
+        cookies = parseCookies(currentRequest->getHeaders().at("cookie"));
+        
+    }
 
     if (cookies.count("session_id"))
     {
@@ -133,6 +139,7 @@ void    Client::handleSession()
         {
             sess = &currentServer->getSessions().at(sid);
             sess->last_access = time(NULL);
+            sess->data = currentRequest->getQueries();
         }
     }
 }
@@ -205,13 +212,58 @@ void    Client::handleFile()
         sentAll = true;
         return;
     }
-    char    buffer[1024];
+    char    buffer[7000];
     fileStream.read(buffer, sizeof(buffer));
     size_t bytesRead = fileStream.gcount();
     if (bytesRead == 0)
         sentAll = true;
     else
     {
+        std::string message;
+        Session     sess;
+        std::cout << "HHH: " << currentRequest->getPath() << std::endl;
+        if (currentRequest->getPath() == "/profile.html")
+        {
+            std::cout << "step1" << std::endl;
+            if (currentRequest->getHeaders().count("cookie"))
+            {
+                std::cout << "step2" << std::endl;
+                std::map<std::string, std::string>::iterator it;
+                for (it = cookies.begin(); it != cookies.end(); it++)
+                {
+                    std::cout << it->first << " ==> " << it->second << std::endl;
+                }
+                std::string sid = cookies["session_id"];
+                std::map<std::string, Session> ses = currentServer->getSessions();
+                std::map<std::string, Session>::iterator ite;
+                for (ite = ses.begin(); ite != ses.end(); ite++)
+                {
+                    std::cout << ite->first << " ==> " << std::endl;
+                }
+                if (currentServer->getSessions().count(sid))
+                {
+                    std::cout << "step3" << std::endl;
+                    sess = currentServer->getSessions().at(sid);
+                    message = "Welcome back " + sess.data["username"] + ", your session_id is: " + sess.id;
+                }
+            }
+            else
+            {
+                std::cout << "step11" << std::endl;
+                message = "Welcome guest";
+            }
+            std::stringstream body;
+            body << "<!DOCTYPE HTML>"
+                << "<html><head></head>"
+                << "<body><h1>Cookies and Sessions example</h1>"
+                << "<p>" << message << "</p>"
+                << "</body></html>";
+            currentResponse.setHeaders("Content-Length", intTostring(body.str().size()));
+            currentResponse.setBody(body.str());
+            sentAll = true;
+            return;
+        }
+
         currentResponse.setBody(std::string(buffer, bytesRead));
         if (bytesRead < sizeof(buffer))
             sentAll = true;
@@ -443,6 +495,7 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
+            handleSession();
             if (currentRequest->getMethod() == "POST")
             {
                 handlePostError();
