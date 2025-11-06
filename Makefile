@@ -1,7 +1,7 @@
 NAME = webserv
 
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g3 -I includes/
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -I includes/ #-fsanitize=address 
 
 SRC = main.cpp \
 	srcs/CGIHandler.cpp \
@@ -23,6 +23,9 @@ all : $(NAME)
 
 $(NAME) : $(OBJ)
 	${CXX} ${CXXFLAGS} ${OBJ} -o ${NAME}
+
+debug: CXXFLAGS += -g3 -ggdb -fno-omit-frame-pointer
+debug: all
 
 clean :
 	rm -rf $(OBJ)
