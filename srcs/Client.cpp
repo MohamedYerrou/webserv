@@ -307,6 +307,8 @@ void    Client::handleHeaders(const std::string& raw)
     std::cout << raw << std::endl;
     try
     {
+        if (currentRequest != NULL)
+            delete currentRequest;
         currentRequest = new Request();
         currentRequest->parseRequest(raw);
         // parsedRequest(*currentRequest);

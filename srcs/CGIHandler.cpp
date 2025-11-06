@@ -447,7 +447,7 @@ void Client::buildCGIEnvironment(std::map<std::string, std::string>& env)
 	env["SERVER_SOFTWARE"] = "webserv/1.0";
 	env["SCRIPT_FILENAME"] = newPath;
 	
-	std::string fullPath = currentRequest->getPath();
+	std::string fullPath = currentRequest->getUri();
 	setCGIPathVariables(env, fullPath);
 	setCGIServerVariables(env, headers);
 	setCGIContentVariables(env, headers);

@@ -7,6 +7,11 @@ Request::Request()
 
 Request::~Request()
 {
+    if (uploadFile != -1)
+    {
+        close(uploadFile);
+        uploadFile = -1;
+    }
 }
 
 int Request::getStatusCode()
