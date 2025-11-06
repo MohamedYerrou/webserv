@@ -19,6 +19,8 @@
 #include "Utils.hpp"
 #include "HtmlMacros.hpp"
 
+bool	isShutdown = false;
+
 void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, std::map<int, Server*>& servers_fd)
 {
 	int client_fd = accept(fd, NULL, NULL);
@@ -318,16 +320,34 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 	}
 }
 
+void sigHandler(int signum)
+{
+	(void)signum;
+	isShutdown = true;
+}
+
+void	sigInstall(void)
+{
+	signal(SIGINT, sigHandler);
+	signal(SIGTERM, sigHandler);
+	signal(SIGQUIT, sigHandler);
+}
+
 void run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
+	sigInstall();
     struct epoll_event events[64];
     std::map<int, Client*> clients;
 
-    while (true)
+    while (isShutdown == false)
     {
         int nfds = epoll_wait(epfd, events, 64, 1000);
         if (nfds == -1)
-            throw_exception("epoll_wait: ", strerror(errno));
+		{
+			if (errno == EINTR)
+				continue;
+			throw_exception("epoll_wait: ", strerror(errno));
+		}
 		handleTimeOut(epfd, clients);
         for (int i = 0; i < nfds; i++)
         {
