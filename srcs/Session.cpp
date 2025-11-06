@@ -19,12 +19,13 @@ std::string generateSessionId()
 {
     char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxys";
     std::string id;
+    size_t size = sizeof(alphanum) - 1;
 
     for (size_t i = 0; i < 16; i++)
     {
-        id += alphanum[rand() % sizeof(alphanum) - 1];
+        id += alphanum[rand() % size];
     }
-
+    std::cout << "ID: " << id << std::endl;
     return id;
 }
 
