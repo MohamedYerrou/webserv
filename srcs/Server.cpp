@@ -1,19 +1,18 @@
 #include "../includes/Server.hpp"
-#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/Utils.hpp"
 #include <sys/socket.h>
-#include "../includes/Utils.hpp"
-#include "../includes/Utils.hpp"
+#include <arpa/inet.h>
+#include <sys/epoll.h>
+#include <unistd.h>
 #include <iostream>
 #include <string.h>
-#include <sys/epoll.h>
-#include <arpa/inet.h>
 #include <cerrno>
-#include <utility>
 #include <utility>
 
 Server::Server()
 {
-	client_max_body_size = 1024;
+	client_max_body_size = 490367;
 }
 
 Server::~Server()
@@ -85,4 +84,193 @@ void    Server::init_server(int epfd, std::map<int, Server*>& server_fd)
 		if (epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &ev) == -1)
 			throw_exception("epoll_ctl: ", strerror(errno));
 	}
+}
+
+void	Server::addCgiIn(CGIContext CGIctx, int epfd)
+{
+	int pipe_fd = CGIctx.pipe_to_cgi;
+		
+	if (CGIstdIn.find(pipe_fd) != CGIstdIn.end())
+		throw_exception("addCgiIn: ", "CGI input pipe already registered");
+	
+	CGIstdIn[pipe_fd] = CGIctx;
+	
+	setNonBlocking(pipe_fd);
+	
+	struct epoll_event ev;
+	ev.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
+	ev.data.fd = pipe_fd;
+	
+	if (epoll_ctl(epfd, EPOLL_CTL_ADD, pipe_fd, &ev) == -1)
+		throw_exception("epoll_ctl: ", strerror(errno));
+}
+
+
+void	Server::addCgiOut(CGIContext CGIctx, int epfd)
+{
+	int pipe_fd = CGIctx.pipe_from_cgi;
+		
+	if (CGIstdOut.find(pipe_fd) != CGIstdOut.end())
+		throw_exception("addCgiOut: ", "CGI output pipe already registered");
+	
+	CGIstdOut[pipe_fd] = CGIctx;
+	
+	setNonBlocking(pipe_fd);
+	
+	struct epoll_event ev;
+	ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+	ev.data.fd = pipe_fd;
+	
+	if (epoll_ctl(epfd, EPOLL_CTL_ADD, pipe_fd, &ev) == -1)
+		throw_exception("epoll_ctl: ", strerror(errno));
+}
+
+bool Server::handleCGIEvent(int epfd, int fd, uint32_t event_flags, std::map<int, Server*>& servers_fd, std::map<int, Client*>& clients)
+{
+	for (std::map<int, Server*>::iterator sit = servers_fd.begin(); sit != servers_fd.end(); ++sit)
+	{
+		Server* server = sit->second;
+		
+		// Handle CGI stdin (writing to CGI)
+		if (server->CGIstdIn.find(fd) != server->CGIstdIn.end())
+		{
+			if (event_flags & (EPOLLERR | EPOLLHUP))
+			{
+				epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+				close(fd);
+				server->CGIstdIn.erase(fd);
+			}
+			else if (event_flags & EPOLLOUT)
+			{
+				Client* cgiClient = server->CGIstdIn[fd].client;
+				const std::string& body = cgiClient->getRequest()->getBody();
+				size_t written_so_far = server->CGIstdIn[fd].bytes_written;
+				
+				if (written_so_far < body.length())
+				{
+					// ONE write per epoll cycle
+					ssize_t written = write(fd, body.c_str() + written_so_far, body.length() - written_so_far);
+					
+					if (written > 0)
+					{
+						server->CGIstdIn[fd].bytes_written += written;
+						
+						// Check if all data written
+						if (server->CGIstdIn[fd].bytes_written >= body.length())
+						{
+							epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+							close(fd);
+							server->CGIstdIn.erase(fd);
+						}
+					}
+					else
+					{
+						// write failed or returned 0/negative - close pipe
+						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+						close(fd);
+						server->CGIstdIn.erase(fd);
+					}
+				}
+				else
+				{
+					// All data already written
+					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					close(fd);
+					server->CGIstdIn.erase(fd);
+				}
+			}
+			
+			return true;
+		}
+		
+		// Handle CGI stdout (reading from CGI)
+		if (server->CGIstdOut.find(fd) != server->CGIstdOut.end())
+		{
+			std::map<int, CGIContext>::iterator it = server->CGIstdOut.find(fd);
+			
+			// Check if client still exists
+			if (clients.find(it->second.clientfd) == clients.end())
+			{
+				epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+				close(fd);
+				server->CGIstdOut.erase(it);
+				return true;
+			}
+			
+			Client* cgiClient = clients[it->second.clientfd];
+
+			if (event_flags & (EPOLLERR | EPOLLHUP))
+			{
+				// Pipe closed - check CGI process exit status
+				int status;
+				pid_t cgi_pid = cgiClient->getCGIHandler()->getPid();
+				pid_t result = waitpid(cgi_pid, &status, WNOHANG);
+				
+				if (result > 0)
+				{
+					// Process exited - check status
+					if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+					{
+						// Non-zero exit status indicates error
+						cgiClient->getCGIHandler()->setErrorCode(500);
+					}
+					else if (WIFSIGNALED(status))
+					{
+						// Process was killed by a signal
+						cgiClient->getCGIHandler()->setErrorCode(500);
+					}
+				}
+				
+				cgiClient->getCGIHandler()->setComplete(true);
+				epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+				close(fd);
+				server->CGIstdOut.erase(it);
+				
+				// Switch client to EPOLLOUT mode
+				struct epoll_event ev;
+				ev.events = EPOLLOUT;
+				ev.data.fd = cgiClient->getFD();
+				epoll_ctl(epfd, EPOLL_CTL_MOD, cgiClient->getFD(), &ev);
+			}
+			else if (event_flags & EPOLLIN)
+			{
+				char buf[4096];
+				ssize_t bytesRead = read(fd, buf, sizeof(buf));
+				
+				if (bytesRead > 0)
+				{
+					cgiClient->getCGIHandler()->appendResponse(buf, bytesRead);
+				}
+				else
+				{
+					// Check process exit status
+					int status;
+					pid_t cgi_pid = cgiClient->getCGIHandler()->getPid();
+					pid_t result = waitpid(cgi_pid, &status, WNOHANG);
+					
+					if (result > 0)
+					{
+						if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+							cgiClient->getCGIHandler()->setErrorCode(500);
+						else if (WIFSIGNALED(status))
+							cgiClient->getCGIHandler()->setErrorCode(500);
+					}
+					
+					cgiClient->getCGIHandler()->setComplete(true);
+					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					close(fd);
+					server->CGIstdOut.erase(it);
+					
+					struct epoll_event ev;
+					ev.events = EPOLLOUT;
+					ev.data.fd = cgiClient->getFD();
+					epoll_ctl(epfd, EPOLL_CTL_MOD, cgiClient->getFD(), &ev);
+				}
+			}
+
+			return true;
+		}
+	}
+	
+	return false;
 }

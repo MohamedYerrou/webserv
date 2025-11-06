@@ -140,6 +140,9 @@ std::string getStatusText(int code)
         case 414:
             text = "URI Too Long";
             break;
+        case 422:
+            text = "Unprocessable Content";
+            break;
         case 500:
             text = "Internal Server Error";
             break;

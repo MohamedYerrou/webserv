@@ -1,7 +1,7 @@
 NAME = webserv
 
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g3 -I includes/
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g3
 
 SRC = main.cpp \
 	srcs/CGIHandler.cpp \

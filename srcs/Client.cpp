@@ -221,14 +221,29 @@ const Location*   Client::findMathLocation(std::string url)
 
 void Client::handleCompleteRequest()
 {
-    location = findMathLocation(currentRequest->getPath());
-    newPath = joinPath();
-    if (location->getPATH() == "/cgi")
-        checkCGIValid();
-    if (currentRequest->getMethod() == "GET")
-        handleGET();
-    else if (currentRequest->getMethod() == "DELETE")
-        handleDELETE();
+	location = findMathLocation(currentRequest->getPath());
+	newPath = joinPath();
+	
+	const std::map<std::string, std::string>& cgiMap = location->getCgi();
+	if (!cgiMap.empty())
+	{
+		try
+		{
+			checkCGIValid();
+			if (getIsCGI())
+				return;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "CGI Error: " << e.what() << std::endl;
+			return errorResponse(500, "Internal Server Error");
+		}
+	}
+	
+	if (currentRequest->getMethod() == "GET")
+		handleGET();
+	else if (currentRequest->getMethod() == "DELETE")
+		handleDELETE();
 }
 
 
@@ -296,12 +311,13 @@ void    Client::handleHeaders(const std::string& raw)
         currentRequest->parseRequest(raw);
         // parsedRequest(*currentRequest);
         bodySize = currentRequest->getContentLength();
-        // if (bodySize > currentServer->getMaxSize())
-        // {
-        //     errorResponse(413, "Payload Too Large");
-        //     reqComplete = true;
-        // }
-        if (bodySize == 0 && currentRequest->getMethod() == "POST")
+        std::cout << "BODY TOTAL SIZE: " << bodySize << std::endl;
+        if (bodySize > currentServer->getMaxSize())
+        {
+            errorResponse(413, "Payload Too Large");
+            reqComplete = true;
+        }
+        else if (bodySize == 0 && currentRequest->getMethod() == "POST")
         {
             errorResponse(411, "Length Required");
             reqComplete = true;
@@ -315,7 +331,6 @@ void    Client::handleHeaders(const std::string& raw)
         reqComplete = true;
         requestError = true;
         errorResponse(currentRequest->getStatusCode(), e.what());
-        // std::cout << "Request error: " << e.what() << std::endl;
     }
 }
 
@@ -357,6 +372,32 @@ std::string Client::constructFilePath(std::string uri)
     return path;
 }
 
+void    Client::handlePostError()
+{
+    location = findMathLocation(currentRequest->getPath());
+    if (!allowedMethod("POST"))
+    {
+        reqComplete = true;
+        errorResponse(405, "Method not allowed");
+    }
+    else if (location->getUploadStore().empty())
+    {
+        reqComplete = true;
+        errorResponse(422, "Unprocessable Content");
+    }
+    else if (!isDir(location->getUploadStore()))
+    {
+        reqComplete = true;
+        errorResponse(422, "Unprocessable Content");
+    }
+    else if (access(location->getUploadStore().c_str(), X_OK | W_OK) == -1)
+    {
+        std::cout << "FORBIDDEN " << location->getUploadStore() <<  std::endl;
+        reqComplete = true;
+        errorResponse(403, "Forbidden");
+    }
+}
+
 void    Client::appendData(const char* buf, ssize_t length)
 {
     if (!endHeaders)
@@ -368,6 +409,12 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
+            if (currentRequest->getMethod() == "POST")
+            {
+                handlePostError();
+                if (reqComplete)
+                    return;
+            }
             size_t bodyInHeader = headers.length() - headerPos;
             if (hasBody && bodyInHeader > 0)
             {

@@ -41,19 +41,19 @@ unsigned int	ip_toBinary(std::string str)
 	return htonl(nbr);
 }
 
-int	main()
-{
-	unsigned int i = 1;
-	i = i << 8;
-	// std::cout << i << std::endl;
-	unsigned char* c = (unsigned char *)&i;
-	// if (*c == 0)
-	// 	std::cout << "Big endian" << std::endl;
-	// else if (*c == 1)
-	// 	std::cout << "Little endian" << std::endl;
-	// else
-	// 	std::cout << "something else" << std::endl;
-	std::cout << ip_toBinary("255.300.255.255") << std::endl;
-	std::cout << inet_addr("255.255.255.255") << std::endl;
-	return 0;
-}
+// int	main()
+// {
+// 	unsigned int i = 1;
+// 	i = i << 8;
+// 	// std::cout << i << std::endl;
+// 	unsigned char* c = (unsigned char *)&i;
+// 	// if (*c == 0)
+// 	// 	std::cout << "Big endian" << std::endl;
+// 	// else if (*c == 1)
+// 	// 	std::cout << "Little endian" << std::endl;
+// 	// else
+// 	// 	std::cout << "something else" << std::endl;
+// 	std::cout << ip_toBinary("255.300.255.255") << std::endl;
+// 	std::cout << inet_addr("255.255.255.255") << std::endl;
+// 	return 0;
+// }
