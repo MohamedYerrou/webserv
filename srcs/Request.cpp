@@ -225,11 +225,11 @@ void    Request::parseLine(const std::string& raw)
             throw std::runtime_error("Bad request: Invalid uri");
         if (protocol.empty())
             throw std::runtime_error("Bad request: protocol empty");
-        if (protocol != "http/1.0")
-        {
-            statusCode = 505;
-            throw std::runtime_error("Bad request: Unsupported HTTP version");
-        }
+        // if (protocol != "http/1.0")
+        // {
+        //     statusCode = 505;
+        //     throw std::runtime_error("Bad request: Unsupported HTTP version");
+        // }
     }
     else
         throw std::runtime_error("Bad request");
@@ -256,7 +256,6 @@ void    Request::parseHeaders(const std::string& raw)
             if (!key.empty())
             {
                 toLowerCase(key);
-                toLowerCase(value);
                 headers[key] = value;
             }
         }
