@@ -1,6 +1,42 @@
 #include "../includes/Utils.hpp"
 #include "../includes/Request.hpp"
 
+
+bool	is_number(std::string& nbr)
+{
+	size_t	i = 0;
+	while (i < nbr.size())
+	{
+		if (isdigit(nbr[i++]) == 0)
+			return false;
+	}
+	return true;
+}
+
+unsigned int	ip_toBinary(std::string str)
+{
+	std::stringstream	ss1(str);
+	std::string			word;
+	int					nbr = 0;
+	int					iter = 3;
+
+
+	while (std::getline(ss1, word, '.'))
+	{
+		if (!is_number(word))
+			return -1;
+		std::stringstream	ss2(word);
+		int					tmp_nbr = 0;
+		ss2 >> tmp_nbr;
+		if (is_number(word) && (tmp_nbr < 0 || tmp_nbr > 255))
+			return -1;
+		nbr  = nbr | tmp_nbr;
+		if (iter--)
+			nbr = nbr << 8;
+	}
+	return htonl(nbr);
+}
+
 std::string currentDate()
 {
     time_t now = time(NULL);
