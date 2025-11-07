@@ -1,8 +1,8 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#define	REQUEST_TIMEOUT 50
-#define CGI_TIMEOUT 30
+#define	REQUEST_TIMEOUT 10
+#define CGI_TIMEOUT 5
 
 #include <string>
 #include <iostream>
@@ -102,31 +102,20 @@ class Client
 		
 
 		
-		//Cgi added by mohamed
-		void					 checkCGIValid();
-		bool					 getIsCGI() const { return isCGI; }
-		void 					 setIsCGI(bool val) {isCGI = val; }
-		Server*					 getServer() const { return currentServer; }
-		CGIHandler*				 getCGIHandler() const { return cgiHandler; }
-		void cleanupCGI()
-		{
-			if (cgiHandler)
-			{
-				delete cgiHandler;
-				cgiHandler = NULL;
-			}
-		}
-		bool isCgiTimedOut()
-		{
-			if (cgiHandler == NULL) {
-				return false;
-			}
-			if (!cgiHandler->isStarted())
-				return false;
-			
-			return (time(NULL) - cgiHandler->getStartTime() > CGI_TIMEOUT);
-		}
-		Request*	getCurrentRequest(){ return currentRequest;}
+		void				checkCGIValid();
+		bool				getIsCGI() const;
+		void 				setIsCGI(bool val);
+		Server*				getServer() const;
+		CGIHandler*			getCGIHandler() const;
+		void				cleanupCGI();
+		bool				isCgiTimedOut();
+		Request*			getCurrentRequest();
+		std::string			findActualScriptPath(const std::map<std::string, std::string>& cgiMap);
+		void				buildCGIEnvironment(std::map<std::string, std::string>& env);
+		void				setCGIPathVariables(std::map<std::string, std::string>& env, const std::string& fullPath);
+		void				setCGIServerVariables(std::map<std::string, std::string>& env, const std::map<std::string, std::string>& headers);
+		void				setCGIContentVariables(std::map<std::string, std::string>& env, const std::map<std::string, std::string>& headers);
+		void				setCGIHttpHeaders(std::map<std::string, std::string>& env, const std::map<std::string, std::string>& headers);
 };
 
 #endif

@@ -1,4 +1,4 @@
 
 # This script has invalid shebang - should trigger 500 error
 print("Content-Type: text/html\r\n\r\n")
-print("This should never execute")
+print("This should not execute in one case")

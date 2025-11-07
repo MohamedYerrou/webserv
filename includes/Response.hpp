@@ -24,7 +24,7 @@ class Response
 		void		setHeaders(std::string key, std::string value);
 		void		setBody(std::string body);
 		std::string	build();
-		void	setEndHeaders(bool flag);
+		void		setEndHeaders(bool flag);
 };
 
 #endif

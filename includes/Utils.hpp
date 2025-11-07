@@ -40,5 +40,6 @@ size_t  		getFileSize(const std::string& path);
 void    		toLowerCase(std::string& str);
 unsigned int	ip_toBinary(std::string str);
 void			throw_exception(std::string function, std::string err);
+std::string 	urlDecode(const std::string& str);
 
 #endif

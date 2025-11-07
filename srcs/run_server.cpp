@@ -36,11 +36,10 @@ void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, st
 	clients[client_fd] = new Client(client_fd, servers_fd.find(fd)->second);
 }
 
-void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients, std::map<int, Server*>& servers_fd)
+void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients)
 {
 	char	buf[10000];
 	Client* clientPtr = clients[fd];
-	(void)servers_fd; // Used for CGI context
 
 	ssize_t received = recv(clientPtr->getFD(), buf, sizeof(buf) - 1, 0);
 	if (received == -1)
@@ -87,12 +86,6 @@ void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients, std:
 
 				server->addCgiIn(ctx, epfd);
 				server->addCgiOut(ctx, epfd);
-
-				// struct epoll_event ev;
-				// ev.events = 0;
-				// ev.data.fd = fd;
-				// if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev) == -1)
-				// 	throw_exception("epoll_ctl: ", strerror(errno));
 			}
 			else
 			{
@@ -138,78 +131,40 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 {
 	Client* client = clients[fd];
-
+	
 	if (!client->getCGIHandler())
 	{
 		handleClientResponse(epfd, fd, clients);
 		return;
 	}
-
+	
 	CGIHandler* cgi = client->getCGIHandler();
-
 	if (!cgi->isComplete())
 		return;
-
+	
 	std::string response;
-
 	if (cgi->hasError())
 	{
 		int error_code = cgi->getErrorCode();
 		if (error_code == 0)
 			error_code = 500;
-
-		std::string error_body = "<!DOCTYPE html><html><head><title>CGI Error</title></head><body>";
-		error_body += "<h1>CGI Error</h1>";
-
-		if (error_code == 500)
-			error_body += "<p>Internal Server Error - CGI script execution failed.</p>";
-		else if (error_code == 502)
-			error_body += "<p>Bad Gateway - CGI script produced invalid headers.</p>";
+		
+		std::string error_body = CGI_ERROR_BODY(error_code);
+		if (error_code == 502)
+			response = HTTP_ERROR_RESPONSE("502 Bad Gateway", error_body);
 		else if (error_code == 504)
-			error_body += "<p>Gateway Timeout - CGI script took too long to respond.</p>";
+			response = HTTP_ERROR_RESPONSE("504 Gateway Timeout", error_body);
 		else
-			error_body += "<p>An error occurred while processing the CGI request.</p>";
-
-		error_body += "</body></html>";
-
-		std::ostringstream oss;
-		oss << error_body.size();
-
-		response = "HTTP/1.1 ";
-		if (error_code == 500)
-			response += "500 Internal Server Error\r\n";
-		else if (error_code == 502)
-			response += "502 Bad Gateway\r\n";
-		else if (error_code == 504)
-			response += "504 Gateway Timeout\r\n";
-		else
-			response += "500 Internal Server Error\r\n";
-
-		response += "Content-Type: text/html\r\n";
-		response += "Content-Length: " + oss.str() + "\r\n";
-		response += "Connection: close\r\n\r\n";
-		response += error_body;
+			response = HTTP_ERROR_RESPONSE("500 Internal Server Error", error_body);
 	}
 	else
 	{
 		std::string body = cgi->getBuffer();
-
+		
 		if (body.size() == 1 && body[0] == 'E')
 		{
 			std::string error_body = HTML_ERROR_502;
-			// "<!DOCTYPE html><html><head><title>502 Bad Gatway</title></head><body>";
-			// error_body += "<h1>502 Bad Gatway</h1>";
-			// error_body += "<p>The CGI script could not be executed. Check script permissions and interpreter path.</p>";
-			// error_body += "</body></html>";
-
-			std::ostringstream oss;
-			oss << error_body.size();
-
-			response = "HTTP/1.1 502 Bad Gatwayr\r\n";
-			response += "Content-Type: text/html\r\n";
-			response += "Content-Length: " + oss.str() + "\r\n";
-			response += "Connection: close\r\n\r\n";
-			response += error_body;
+			response = HTTP_ERROR_RESPONSE("502 Bad Gateway", error_body);
 		}
 		else if (body.find("HTTP/") == 0)
 			response = body;
@@ -218,45 +173,22 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			size_t separator_pos = body.find("\r\n\r\n");
 			if (separator_pos == std::string::npos)
 				separator_pos = body.find("\n\n");
-
+			
 			if (separator_pos == std::string::npos)
 			{
-				std::string error_body = "<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body>";
-				error_body += "<h1>502 Bad Gateway</h1>";
-				error_body += "<p>The CGI script produced invalid output (incomplete headers).</p>";
-				error_body += "</body></html>";
-
-				std::ostringstream oss;
-				oss << error_body.size();
-
-				response = "HTTP/1.1 502 Bad Gateway\r\n";
-				response += "Content-Type: text/html\r\n";
-				response += "Content-Length: " + oss.str() + "\r\n";
-				response += "Connection: close\r\n\r\n";
-				response += error_body;
+				std::string error_body = HTML_ERROR_502;
+				response = HTTP_ERROR_RESPONSE("502 Bad Gateway", error_body);
 			}
 			else
 				response = "HTTP/1.1 200 OK\r\n" + body;
 		}
 		else
 		{
-			std::string error_body = HTML_ERROR_502;
-			// "<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body>";
-			// error_body += "<h1>502 Bad Gateway</h1>";
-			// error_body += "<p>The CGI script produced invalid output (no CGI headers found).</p>";
-			// error_body += "</body></html>";
-
-			std::ostringstream oss;
-			oss << error_body.size();
-
-			response = "HTTP/1.1 502 Bad Gateway\r\n";
-			response += "Content-Type: text/html\r\n";
-			response += "Content-Length: " + oss.str() + "\r\n";
-			response += "Connection: close\r\n\r\n";
-			response += error_body;
+			std::string error_body = HTML_ERROR_502; 
+			response = HTTP_ERROR_RESPONSE("502 Bad Gateway", error_body);
 		}
 	}
-
+	
 	ssize_t sent = send(fd, response.c_str(), response.length(), 0);
 	if (sent == -1)
 		std::cout << "CGI Sent Error: " << strerror(errno) << std::endl;
@@ -273,16 +205,16 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 	for (it = clients.begin(); it != clients.end(); )
 	{
 		Client* client = it->second;
-		if (client->isTimedOut())
+		// if (client->isTimedOut())
+		// {
+		// 	epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
+		// 	close(it->first);
+		// 	delete client;
+		// 	clients.erase(it++);
+		// }
+		if (client && (client->getIsCGI() && client->isCgiTimedOut()))
 		{
-			epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
-			close(it->first);
-			delete client;
-			clients.erase(it++);
-		}
-		else if (client && (client->getIsCGI() && client->isCgiTimedOut()))
-		{
-			if (client->getIsCGI() && client->isCgiTimedOut() && client->getCGIHandler())
+			if ((client->getIsCGI() && client->isCgiTimedOut()) && client->getCGIHandler())
 			{
 				client->getCGIHandler()->setErrorCode(504);
 				client->getCGIHandler()->setComplete(true);
@@ -301,14 +233,9 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 			}
 			else
 			{
-				std::string str = "HTTP/1.1 408 Request Timeout\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";
-				str += "<!DOCTYPE html><html><head><title>408 Request Timeout</title></head><body>";
-				str += "<h1>408 Request Timeout</h1><p>The request took too long to complete.</p></body></html>";
-
-				ssize_t sent = send(it->first, str.c_str(), str.length(), 0);
-				if (sent == -1)
-					std::cout << "Error: " << strerror(errno) << std::endl;
-
+				std::string error_body = HTML_ERROR_408;
+				std::string str = HTTP_ERROR_RESPONSE("408 Request Timeout", error_body);
+				
 				epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
 				close(it->first);
 				delete client;
@@ -370,7 +297,7 @@ void run_server(int epfd, std::map<int, Server*>& servers_fd)
 
 			Client* client = clients[fd];
             if (event_flags & EPOLLIN)
-				handleClientRequest(epfd, fd, clients, servers_fd);
+				handleClientRequest(epfd, fd, clients);
             else if (event_flags & EPOLLOUT)
             {
                 if (client->getIsCGI())

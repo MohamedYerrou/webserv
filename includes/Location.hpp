@@ -35,20 +35,17 @@ public:
 	void	set_autoIndex(std::vector<std::string>& tokens, size_t& i);
 
     //GETTERS
-	const std::string&					getPATH() const;
-	const std::string&					getRoot() const;
-	const std::string&					getUploadStore() const;
-	const std::pair<int, std::string>	getRedirection() const;
-	const std::vector<std::string>&		getIndex() const;
-	const std::vector<std::string>&		getMethod() const;
-	const std::map<int, std::string>&	getErrors() const;
-	bool								getAutoIndex() const;
-	bool								hasRedir() const;
-	void								printLocation() const;
-
-	//added by mohamed
-	const std::map<std::string, std::string>& getCgi() const { return _cgi; }
-
+	const std::string&							getPATH() const;
+	const std::string&							getRoot() const;
+	const std::string&							getUploadStore() const;
+	const std::pair<int, std::string>			getRedirection() const;
+	const std::vector<std::string>&				getIndex() const;
+	const std::vector<std::string>&				getMethod() const;
+	const std::map<int, std::string>&			getErrors() const;
+	bool										getAutoIndex() const;
+	bool										hasRedir() const;
+	void										printLocation() const;
+	const std::map<std::string, std::string>&	getCgi() const;
 
 };
 

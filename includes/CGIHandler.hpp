@@ -29,24 +29,29 @@ public:
     CGIHandler(Client* c);
     ~CGIHandler();
 
-    void startCGI(const std::string& scriptPath, const std::map<std::string,std::string>& env);
-    bool isFinished() const;
-    std::string getBuffer() const;
-    int getOutFD() const;
-    time_t getStartTime() const { return _startTime; }
-    bool isStarted() const { return started; }
+    void                startCGI(const std::string& scriptPath, const std::map<std::string,std::string>& env);
+    bool                isFinished() const;
+    std::string         getBuffer() const;
+    int                 getOutFD() const;
+    time_t              getStartTime() const;
+    bool                isStarted() const;
     
     // New methods for pipe-based CGI handling
-    pid_t getPid() const { return pid; }
-    int getStdinFd() const { return in_fd[1]; }
-    int getStdoutFd() const { return out_fd[0]; }
-    void appendResponse(const char* buf, size_t len) { buffer.append(buf, len); }
-    void setComplete(bool val) { is_complete = val; }
-    void setError(bool val) { is_error = val; }
-    void setErrorCode(int code) { error_code = code; is_error = true; }
-    bool isComplete() const { return is_complete; }
-    bool hasError() const { return is_error; }
-    int getErrorCode() const { return error_code; }
+    pid_t               getPid() const;
+    int                 getStdinFd() const;
+    int                 getStdoutFd() const;
+    void                appendResponse(const char* buf, size_t len);
+    void                setComplete(bool val);
+    void                setError(bool val);
+    void                setErrorCode(int code);
+    bool                isComplete() const;
+    bool                hasError() const;
+    int                 getErrorCode() const;
+    void                setupPipes(int err_pipe[2]);
+    void                executeChildProcess(const std::string& scriptPath, const std::map<std::string, std::string>& env, int err_pipe[2]);
+    void                handleParentProcess(int err_pipe[2], const std::string& scriptPath);
+    std::vector<char*>  buildEnvp(const std::map<std::string, std::string>& env);
+    void                executeScript(const std::string& scriptPath, std::vector<char*>& envp);
 };
 
 #endif

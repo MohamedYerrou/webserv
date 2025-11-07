@@ -1,6 +1,17 @@
 #ifndef HTMLMACROS_HPP
 # define HTMLMACROS_HPP
 
+# include <string>
+# include <sstream>
+
+// Helper function for C++98 compatible size_t to string conversion
+inline std::string size_to_string(size_t value)
+{
+	std::ostringstream oss;
+	oss << value;
+	return oss.str();
+}
+
 // Basic HTML Building Block Macro Functions
 # define HTML_DOCTYPE std::string("<!DOCTYPE html>")
 # define HTML_TAG(tag, content) (std::string)"<" + tag ">" + content + "</" + tag ">"
@@ -92,6 +103,7 @@
 # define HTML_ERROR_405(method) \
 	HTML_ERRPAGE("405", "Method Not Allowed", \
 		"The method `" + (method.empty() ? "Unknown" : method) + "' is not allowed for this resource.")
+# define HTML_ERROR_408 HTML_ERRPAGE("408", "Request Timeout", "The request took too long to complete.")
 # define HTML_ERROR_413(maxsize) \
 	HTML_ERRPAGE("413", "Payload Too Large", "The request payload is too large." + \
 					" Maximum allowed size is " + maxsize + " bytes.")
@@ -105,6 +117,32 @@
 # define HTML_ERROR_505(protocol) \
 	HTML_ERRPAGE("505", "HTTP Version Not Supported", \
 		"The HTTP protocol version `" + (protocol.empty() ? "Unknown" : protocol) + "' is not supported by this server.")
+
+// The following helper macros are provided to reduce repeated boilerplate
+// when building CGI error pages and their corresponding HTTP responses.
+// Usage examples:
+//   std::string body = CGI_ERROR_BODY(error_code);
+//   std::string resp = HTTP_ERROR_RESPONSE("502 Bad Gateway", body);
+
+// Macro that returns an HTML error body string for common CGI error codes.
+// Evaluates to an std::string expression.
+# define CGI_ERROR_BODY(code) \
+		( std::string("<!DOCTYPE html><html><head><title>CGI Error</title></head><body>") + \
+			std::string("<h1>CGI Error</h1>") + \
+			( (code) == 500 ? std::string("<p>Internal Server Error - CGI script execution failed.</p>") : \
+				( (code) == 502 ? std::string("<p>Bad Gateway - CGI script produced invalid headers.</p>") : \
+					( (code) == 504 ? std::string("<p>Gateway Timeout - CGI script took too long to respond.</p>") : \
+						std::string("<p>An error occurred while processing the CGI request.</p>") ) ) ) + \
+			std::string("</body></html>") )
+
+// Macro that builds a full HTTP response string for a given status text
+// (for example: "502 Bad Gateway") and an std::string body expression.
+// Evaluates to an std::string expression and uses size_to_string for Content-Length.
+# define HTTP_ERROR_RESPONSE(status_text, body) \
+		( std::string("HTTP/1.1 ") + (status_text) + std::string("\r\n") + \
+			std::string("Content-Type: text/html\r\n") + \
+			std::string("Content-Length: ") + size_to_string((body).size()) + std::string("\r\n") + \
+			std::string("Connection: close\r\n\r\n") + (body) )
 
 # define DEFAULT_CSS "body { font-family: Arial, sans-serif; margin: 40px; }" \
 					 "h1 { border-bottom: 1px solid #ccc; padding-bottom: 10px; }" \

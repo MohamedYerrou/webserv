@@ -392,6 +392,8 @@ void    Client::handleHeaders(const std::string& raw)
     std::cout << raw << std::endl;
     try
     {
+        if (currentRequest != NULL)
+            delete currentRequest;
         currentRequest = new Request();
         currentRequest->parseRequest(raw);
         // parsedRequest(*currentRequest);
@@ -537,4 +539,49 @@ void    Client::appendData(const char* buf, ssize_t length)
         if (hasBody && !reqComplete)
             handlePost(buf, length);
     }
+}
+
+void Client::cleanupCGI()
+{
+	if (cgiHandler)
+	{
+		delete cgiHandler;
+		cgiHandler = NULL;
+	}
+}
+
+bool Client::isCgiTimedOut()
+{
+	if (cgiHandler == NULL)
+		return false;
+	
+	if (!cgiHandler->isStarted())
+		return false;
+	
+	return (time(NULL) - cgiHandler->getStartTime() > CGI_TIMEOUT);
+}
+
+bool Client::getIsCGI() const
+{
+	return isCGI;
+}
+
+void Client::setIsCGI(bool val)
+{
+	isCGI = val;
+}
+
+Server* Client::getServer() const
+{
+	return currentServer;
+}
+
+CGIHandler* Client::getCGIHandler() const
+{
+	return cgiHandler;
+}
+
+Request*		Client::getCurrentRequest()
+{
+    return currentRequest;
 }

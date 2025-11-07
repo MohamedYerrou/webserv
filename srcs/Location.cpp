@@ -138,3 +138,9 @@ void    Location::printLocation() const
     for (std::map<std::string, std::string>::const_iterator it = _cgi.begin(); it != _cgi.end(); ++it)
 	std::cout << "CGI *********************************** registered: " << it->first << " -> " << it->second << std::endl;
 }
+
+const std::map<std::string, std::string>& Location::getCgi() const
+{
+	return _cgi;
+}
+

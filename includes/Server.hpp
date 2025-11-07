@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <stdint.h>
+#include <stdint.h>
 #include "Location.hpp"
 #include "Session.hpp"
 
@@ -35,6 +36,7 @@ class Server
 	std::vector<int>							listen_fd;
 	size_t										client_max_body_size;
 
+
 		
 	public:
 	Server();
@@ -43,11 +45,15 @@ class Server
 	void							push_location(Location location, bool& inLocation);
 	void							init_server(int epfd, std::map<int, Server*>& fd_vect);
 	const std::vector<Location>&	getLocations() const;
+	
 	void							setMaxBodySize(std::string size);
 	size_t							getMaxBodySize();
 	void							addCgiIn(CGIContext CGIctx, int fd);
 	void							addCgiOut(CGIContext CGIctx, int fd);
 	static bool						handleCGIEvent(int epfd, int fd, uint32_t event_flags, std::map<int, Server*>& servers_fd, std::map<int, Client*>& clients);
+	static void						handleCGIStdinEvent(int epfd, int fd, uint32_t event_flags, Server* server);
+	static void						handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server* server, std::map<int, Client*>& clients);
+	static void						cleanupCGIPipe(int epfd, int fd, Server* server, bool is_stdin);
 	std::map<std::string, Session>&	getSessions();
 };
 

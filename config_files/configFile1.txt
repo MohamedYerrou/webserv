@@ -55,10 +55,26 @@ server {
 #         cgi .py  /usr/bin/python3;
 #     }
 # }
+#     location /cgi-bin {
+#         cgi .php /usr/bin/php-cgi;
+#         cgi .py  /usr/bin/python3;
+#     }
+# }
 
 # server {
 #     listen 127.0.0.1:3663;
+# server {
+#     listen 127.0.0.1:3663;
 
+#     location /upload {
+#         root /home/toro/Desktop/webserv;
+#         methods GET;
+#         index index3.html;
+#         error_page 302 /errors/302.html;
+#         error_page 500 /errors/500.html;
+#         error_page 200 /errors/200.html;
+#     }
+# }
 #     location /upload {
 #         root /home/toro/Desktop/webserv;
 #         methods GET;
