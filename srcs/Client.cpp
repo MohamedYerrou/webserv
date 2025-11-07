@@ -392,8 +392,6 @@ void    Client::handleHeaders(const std::string& raw)
     std::cout << raw << std::endl;
     try
     {
-        if (currentRequest != NULL)
-            delete currentRequest;
         currentRequest = new Request();
         currentRequest->parseRequest(raw);
         // parsedRequest(*currentRequest);
@@ -503,13 +501,6 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
-            handleSession();
-            if (!reqComplete && currentRequest->getMethod() == "POST")
-            {
-                handlePostError();
-                if (reqComplete)
-                    return;
-            }
             size_t bodyInHeader = headers.length() - headerPos;
             if (hasBody && bodyInHeader > 0)
             {

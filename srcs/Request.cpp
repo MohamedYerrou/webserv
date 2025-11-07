@@ -34,6 +34,11 @@ const std::string& Request::getProtocol() const
     return protocol;
 }
 
+const std::string&  Request::getBody() const
+{
+    return body;
+}
+
 const std::map<std::string, std::string>& Request::getHeaders() const
 {
     return headers;

@@ -54,7 +54,7 @@ class Request
 		void										generateTmpFile(const std::string& target_path, const std::string& file);
 		void										closeFileUpload();
 		const std::string& 							getFileName() const;
-		const std::string&							getBody() const { return body; }
+		const std::string&							getBody() const;
 };
 
 #endif

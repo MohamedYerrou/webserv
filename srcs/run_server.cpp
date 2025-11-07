@@ -107,7 +107,6 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		client->handleFile();
 		Response& currentResponse = client->getResponse();
 		std::string res = currentResponse.build();
-		// std::cout << "Building res: " << res << std::endl;
 		ssize_t sent = send(fd, res.c_str(), res.length(), 0);
 		if (sent == -1)
 		{
@@ -137,7 +136,6 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		handleClientResponse(epfd, fd, clients);
 		return;
 	}
-	
 	CGIHandler* cgi = client->getCGIHandler();
 	if (!cgi->isComplete())
 		return;
@@ -153,12 +151,15 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		if (error_code == 502)
 			response = HTTP_ERROR_RESPONSE("502 Bad Gateway", error_body);
 		else if (error_code == 504)
+		{
 			response = HTTP_ERROR_RESPONSE("504 Gateway Timeout", error_body);
+		}
 		else
 			response = HTTP_ERROR_RESPONSE("500 Internal Server Error", error_body);
 	}
 	else
 	{
+		std::cout << "hahahahaha" << std::endl;
 		std::string body = cgi->getBuffer();
 		
 		if (body.size() == 1 && body[0] == 'E')
@@ -205,19 +206,20 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 	for (it = clients.begin(); it != clients.end(); )
 	{
 		Client* client = it->second;
-		// if (client->isTimedOut())
-		// {
-		// 	epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
-		// 	close(it->first);
-		// 	delete client;
-		// 	clients.erase(it++);
-		// }
+		if (!client->getIsCGI() && client->isTimedOut())
+		{
+			epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
+			close(it->first);
+			delete client;
+			clients.erase(it++);
+		}
 		if (client && (client->getIsCGI() && client->isCgiTimedOut()))
 		{
-			if ((client->getIsCGI() && client->isCgiTimedOut()) && client->getCGIHandler())
+			if (client->getCGIHandler())
 			{
 				client->getCGIHandler()->setErrorCode(504);
 				client->getCGIHandler()->setComplete(true);
+				client->getCGIHandler()->setError(true);
 				struct epoll_event ev;
 				ev.events = EPOLLOUT;
 				ev.data.fd = it->first;
@@ -231,16 +233,16 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 				else
 					++it;
 			}
-			else
-			{
-				std::string error_body = HTML_ERROR_408;
-				std::string str = HTTP_ERROR_RESPONSE("408 Request Timeout", error_body);
+			// else
+			// {
+			// 	std::string error_body = HTML_ERROR_408;
+			// 	std::string str = HTTP_ERROR_RESPONSE("408 Request Timeout", error_body);
 				
-				epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
-				close(it->first);
-				delete client;
-				clients.erase(it++);
-			}
+			// 	epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
+			// 	close(it->first);
+			// 	delete client;
+			// 	clients.erase(it++);
+			// }
 		}
 		else
 			it++;
