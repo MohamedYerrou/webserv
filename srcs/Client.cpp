@@ -460,6 +460,7 @@ std::string Client::constructFilePath(std::string uri)
 void    Client::handlePostError()
 {
     location = findMathLocation(currentRequest->getPath());
+    target_path = constructFilePath(currentRequest->getPath());
     if (!allowedMethod("POST"))
     {
         reqComplete = true;
@@ -478,9 +479,14 @@ void    Client::handlePostError()
     }
     else if (access(location->getUploadStore().c_str(), X_OK | W_OK) == -1)
     {
-        std::cout << "FORBIDDEN " << location->getUploadStore() <<  std::endl;
         reqComplete = true;
         errorResponse(403, "Forbidden");
+    }
+    else if (!isDir(target_path) || target_path.empty())
+    {
+        reqComplete = true;
+        requestError = true;
+        errorResponse(404, "NOT FOUND");
     }
 }
 
@@ -496,7 +502,7 @@ void    Client::appendData(const char* buf, ssize_t length)
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
             handleSession();
-            if (currentRequest->getMethod() == "POST")
+            if (!reqComplete && currentRequest->getMethod() == "POST")
             {
                 handlePostError();
                 if (reqComplete)
@@ -510,10 +516,15 @@ void    Client::appendData(const char* buf, ssize_t length)
                     if (reqComplete)
                         return;
                     oneBody = true;
-                    std::string target_path = constructFilePath(currentRequest->getPath());
-                    std::cout << "TARGETPATH: " << target_path << std::endl;
-                    if (target_path.empty() && reqComplete)
-                        return;
+                    // std::string target_path = constructFilePath(currentRequest->getPath());
+                    // if (!isDir(target_path))
+                    // {
+                    //     reqComplete = true;
+                    //     errorResponse(404, "NOT FOUND");
+                    //     return;
+                    // }
+                    // if (target_path.empty() && reqComplete)
+                    //     return;
                     currentRequest->generateTmpFile(target_path, "");
                 }
                 std::string bodyStart = headers.substr(headerPos);

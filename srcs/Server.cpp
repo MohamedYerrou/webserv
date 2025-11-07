@@ -24,8 +24,6 @@ std::map<std::string, Session>&	Server::getSessions()
 	return sessions;
 }
 
-//getters
-
 const std::vector<Location>& Server::getLocations() const
 {
 	return locations;
@@ -85,18 +83,14 @@ void    Server::init_server(int epfd, std::map<int, Server*>& server_fd)
 		if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 			throw_exception("setsockopt: ", strerror(errno));
 
-		// server_fd.push_back(listen_fd);
 		server_fd.insert(std::make_pair(listen_fd, this));
 
 		sockaddr_in addr;
 
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = AF_INET;
-		// std::cout << listens[i].second << std::endl;
 		addr.sin_port = htons(listens[i].second);
-		// std::cout << addr.sin_port << std::endl;
-		addr.sin_addr.s_addr = inet_addr(listens[i].first.c_str());
-		// std::cout << listens[i].first << std::endl;
+		addr.sin_addr.s_addr = ip_toBinary(listens[i].first);
 
 		if (bind(listen_fd, (const sockaddr*)&addr, sizeof(addr)) == -1)
 			throw_exception("bind: ", strerror(errno));

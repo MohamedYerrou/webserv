@@ -38,7 +38,7 @@ void	handleListeningClient(int epfd, int fd, std::map<int, Client*>& clients, st
 
 void	handleClientRequest(int epfd, int fd, std::map<int, Client*>& clients, std::map<int, Server*>& servers_fd)
 {
-	char	buf[3000];
+	char	buf[10000];
 	Client* clientPtr = clients[fd];
 	(void)servers_fd; // Used for CGI context
 
@@ -114,7 +114,7 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		client->handleFile();
 		Response& currentResponse = client->getResponse();
 		std::string res = currentResponse.build();
-		std::cout << "Building res: " << res << std::endl;
+		// std::cout << "Building res: " << res << std::endl;
 		ssize_t sent = send(fd, res.c_str(), res.length(), 0);
 		if (sent == -1)
 		{

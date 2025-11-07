@@ -1,14 +1,14 @@
 server {
     listen 127.0.0.1:8080;
     listen 127.0.0.1:4343;
-    client_max_body_size 1894340421;
+    client_max_body_size 10187042480;
 
     location / {
-        root /home/noudrib/Desktop/finalWeb;
+        root /home/toro/Desktop/webserv;
         index index11.html index1.html;
         methods GET POST DELETE;
         autoindex on;
-        upload_store /home/noudrib/Desktop/finalWeb;
+        upload_store /home/toro/Desktop/webserv;
         error_page 403 /errors/403.html;
         error_page 404 /errors/404.html;
         error_page 405 /errors/405.html;
@@ -18,25 +18,25 @@ server {
     }
 
     location /upload {
-        root /home/noudrib/Desktop/finalWeb;
-        upload_store /home/noudrib/Desktop/finalWeb/upload;
+        root /home/toro/Desktop/webserv/upload;
+        upload_store /home/toro/Desktop/webserv/upload;
         index index1.html;
         methods GET POST DELETE;
         autoindex on;
     }
 
     location /cgi {
-        root /home/noudrib/Desktop/finalWeb/cgi-bin;
+        root /home/toro/Desktop/webserv/cgi-bin;
         index index.py;
         methods GET POST;
-        upload_store /home/noudrib/Desktop/finalWeb;
+        upload_store /home/toro/Desktop/webserv;
         autoindex off;
         cgi .php /usr/bin/php-cgi;
         cgi .py /usr/bin/python3;
     }
     
     location /cgibad {
-        root /home/noudrib/Desktop/finalWeb/cgi-bin;
+        root /home/toro/Desktop/webserv/cgi-bin;
         methods GET POST;
         autoindex off;
         cgi .py /nonexistent/python3;

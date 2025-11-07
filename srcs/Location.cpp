@@ -1,5 +1,5 @@
 #include "../includes/Location.hpp"
-#include "../includes/Location.hpp"
+#include "../includes/Utils.hpp"
 
 Location::Location(): _autoindex(false), isRedirection(false)
 {
@@ -17,7 +17,7 @@ void    Location::set_path(std::string& path)
 
 void    Location::set_root(std::string& root)
 {
-    _root = root;
+  _root = root;
 }
 
 void    Location::set_upload_store(std::string& upload_store)

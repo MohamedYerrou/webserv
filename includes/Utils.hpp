@@ -29,7 +29,7 @@ std::string		intTostring(size_t value);
 std::string		getStatusText(int code);
 std::string		currentDate();
 std::string		trim(std::string str);
-int				stringToInt(const std::string& str, int base = 10);
+size_t			stringToInt(const std::string& str, int base = 10);
 void			parsedRequest(Request req);
 bool			isFile(const std::string& path);
 bool			isDir(const std::string& path);
@@ -39,5 +39,6 @@ bool    		isEmpty(const std::string& path);
 size_t  		getFileSize(const std::string& path);
 void    		toLowerCase(std::string& str);
 unsigned int	ip_toBinary(std::string str);
+void			throw_exception(std::string function, std::string err);
 
 #endif

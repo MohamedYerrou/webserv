@@ -128,10 +128,7 @@ bool listening_fd(std::map<int, Server*>& servers_fd, int fd)
 	return false;
 }
 
-void	throw_exception(std::string function, std::string err)
-{
-	throw MyException(function + err);
-}
+
 
 int main(int ac, char** av)
 {

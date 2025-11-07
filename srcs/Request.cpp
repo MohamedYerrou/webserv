@@ -1,7 +1,7 @@
 #include "../includes/Request.hpp"
 
 Request::Request()
-    : uploadFile(-1), MAX_URL_LENGTH(50), statusCode(400)
+    : uploadFile(-1), MAX_URL_LENGTH(100), statusCode(400)
 {
 }
 
@@ -67,9 +67,7 @@ size_t  Request::getContentLength() const
             if (!isdigit(str[i]))
                 return 0;
         }
-        int length = stringToInt(it->second);
-        if (length >= 0)
-            return static_cast<size_t>(length);
+        return stringToInt(it->second);
     }
     return 0;
 }
@@ -225,6 +223,9 @@ void    Request::parseLine(const std::string& raw)
             throw std::runtime_error("Bad request: Invalid uri");
         if (protocol.empty())
             throw std::runtime_error("Bad request: protocol empty");
+        std::cout << "PRotocol: " << protocol << std::endl;
+        if (protocol != "HTTP/1.0" && protocol != "HTTP/1.1")
+            throw std::runtime_error("Bad request: Invalid protocol");
         // if (protocol != "http/1.0")
         // {
         //     statusCode = 505;

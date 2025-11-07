@@ -1,6 +1,10 @@
 #include "../includes/Utils.hpp"
 #include "../includes/Request.hpp"
 
+void	throw_exception(std::string function, std::string err)
+{
+	throw MyException(function + err);
+}
 
 bool	is_number(std::string& nbr)
 {
@@ -55,10 +59,10 @@ std::string intTostring(size_t value)
     return result;
 }
 
-int stringToInt(const std::string& str, int base)
+size_t stringToInt(const std::string& str, int base)
 {
     std::stringstream ss(str);
-    int result;
+    size_t result;
     if (base == 16)
         ss >> std::hex >> result;
     else

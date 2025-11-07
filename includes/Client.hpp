@@ -47,6 +47,7 @@ class Client
 		bool			oneBody;
 		std::string		boundary;
 		std::string		endBoundry;
+		std::string 	target_path;
 		bool			inBody;
 		bool			finishBody;
 		time_t			lastActivityTime;

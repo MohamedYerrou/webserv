@@ -15,7 +15,6 @@ void    Client::handleInBody()
     {
         std::string firstPart = body.substr(0, nextBoundary);
         currentRequest->appendBody(firstPart.c_str(), firstPart.length());
-        // body.erase(0, nextBoundary);
         inBody = false;
         currentRequest->closeFileUpload();
     }
@@ -49,18 +48,11 @@ void    Client::handleBodyHeaders()
                 return;
             std::string filename = body.substr(pos, nextPos - pos - 1);
             std::cout << "FILENAME: " << filename << std::endl;
-            std::string target_path = constructFilePath(currentRequest->getPath());
-            if (target_path.empty() && reqComplete)
-                return;
             currentRequest->generateTmpFile(target_path, filename);
             currentRequest->appendBody(bodyStart.c_str(), bodyStart.length());
         }
         else
         {
-            //TODO: handle with default file name;
-            std::string target_path = constructFilePath(currentRequest->getPath());
-            if (target_path.empty() && reqComplete)
-                return;
             currentRequest->generateTmpFile(target_path, "");
             currentRequest->appendBody(bodyStart.c_str(), bodyStart.length());
         }
