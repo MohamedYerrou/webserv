@@ -122,7 +122,10 @@ void	Server::addCgiIn(CGIContext CGIctx, int epfd)
 	int pipe_fd = CGIctx.pipe_to_cgi;
 		
 	if (CGIstdIn.find(pipe_fd) != CGIstdIn.end())
-		throw_exception("addCgiIn: ", "CGI input pipe already registered");
+	{
+		std::cerr << "Warning: CGI input pipe " << pipe_fd << " already registered" << std::endl;
+		return;
+	}
 	
 	CGIstdIn[pipe_fd] = CGIctx;
 	
@@ -142,7 +145,10 @@ void	Server::addCgiOut(CGIContext CGIctx, int epfd)
 	int pipe_fd = CGIctx.pipe_from_cgi;
 		
 	if (CGIstdOut.find(pipe_fd) != CGIstdOut.end())
-		throw_exception("addCgiOut: ", "CGI output pipe already registered");
+	{
+		std::cerr << "Warning: CGI output pipe " << pipe_fd << " already registered" << std::endl;
+		return;
+	}
 	
 	CGIstdOut[pipe_fd] = CGIctx;
 	
@@ -191,8 +197,13 @@ void Server::handleCGIStdinEvent(int epfd, int fd, uint32_t event_flags, Server*
 				if (server->CGIstdIn[fd].bytes_written >= body.length())
 					cleanupCGIPipe(epfd, fd, server, true);
 			}
-			else
+			else if (written == 0)
 				cleanupCGIPipe(epfd, fd, server, true);
+			else
+			{
+				std::cerr << "CGI write error on fd " << fd << std::endl;
+				cleanupCGIPipe(epfd, fd, server, true);
+			}
 		}
 		else
 			cleanupCGIPipe(epfd, fd, server, true);
@@ -243,9 +254,12 @@ void Server::handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server
 		ssize_t bytesRead = read(fd, buf, sizeof(buf));
 		
 		if (bytesRead > 0)
-			cgiClient->getCGIHandler()->appendResponse(buf, bytesRead);
-		else
 		{
+			cgiClient->getCGIHandler()->appendResponse(buf, bytesRead);
+		}
+		else if (bytesRead == 0)
+		{
+			// EOF - CGI script finished writing
 			int status;
 			pid_t cgi_pid = cgiClient->getCGIHandler()->getPid();
 			pid_t result = waitpid(cgi_pid, &status, WNOHANG);
@@ -258,6 +272,22 @@ void Server::handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server
 					cgiClient->getCGIHandler()->setErrorCode(500);
 			}
 			
+			cgiClient->getCGIHandler()->setComplete(true);
+			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+			close(fd);
+			server->CGIstdOut.erase(it);
+			
+			struct epoll_event ev;
+			ev.events = EPOLLOUT;
+			ev.data.fd = cgiClient->getFD();
+			epoll_ctl(epfd, EPOLL_CTL_MOD, cgiClient->getFD(), &ev);
+		}
+		else
+		{
+			// bytesRead == -1: Error reading from CGI
+			std::cerr << "CGI read error on fd " << fd << std::endl;
+			cgiClient->getCGIHandler()->setErrorCode(502);
+			cgiClient->getCGIHandler()->setError(true);
 			cgiClient->getCGIHandler()->setComplete(true);
 			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 			close(fd);

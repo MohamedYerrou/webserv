@@ -4,11 +4,11 @@ server {
     client_max_body_size 10187042480;
 
     location / {
-        root /home/toro/Desktop/webserv;
+        root /home/myerrou/mainweb;
         index index11.html index1.html;
         methods GET POST DELETE;
         autoindex on;
-        upload_store /home/toro/Desktop/webserv;
+        upload_store /home/myerrou/mainweb;
         error_page 403 /errors/403.html;
         error_page 404 /errors/404.html;
         error_page 405 /errors/405.html;
@@ -18,25 +18,25 @@ server {
     }
 
     location /upload {
-        root /home/toro/Desktop/webserv/upload;
-        upload_store /home/toro/Desktop/webserv/upload;
+        root /home/myerrou/mainweb/upload;
+        upload_store /home/myerrou/mainweb/upload;
         index index1.html;
         methods GET POST DELETE;
         autoindex on;
     }
 
     location /cgi {
-        root /home/toro/Desktop/webserv/cgi-bin;
-        index index.py;
+        root /home/myerrou/mainweb/cgi-bin;
+        index ;
         methods GET POST;
-        upload_store /home/toro/Desktop/webserv;
-        autoindex off;
+        upload_store /home/myerrou/mainweb;
+        autoindex on;
         cgi .php /usr/bin/php-cgi;
         cgi .py /usr/bin/python3;
     }
     
     location /cgibad {
-        root /home/toro/Desktop/webserv/cgi-bin;
+        root /home/myerrou/mainweb/cgi-bin;
         methods GET POST;
         autoindex off;
         cgi .py /nonexistent/python3;
@@ -67,7 +67,7 @@ server {
 #     listen 127.0.0.1:3663;
 
 #     location /upload {
-#         root /home/toro/Desktop/webserv;
+#         root /home/myerrou/mainweb;
 #         methods GET;
 #         index index3.html;
 #         error_page 302 /errors/302.html;
@@ -76,7 +76,7 @@ server {
 #     }
 # }
 #     location /upload {
-#         root /home/toro/Desktop/webserv;
+#         root /home/myerrou/mainweb;
 #         methods GET;
 #         index index3.html;
 #         error_page 302 /errors/302.html;

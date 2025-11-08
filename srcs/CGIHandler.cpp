@@ -212,6 +212,7 @@ void CGIHandler::handleParentProcess(int err_pipe[2], const std::string& scriptP
 	close(in_fd[0]);
 	close(out_fd[1]);
 	close(err_pipe[1]);
+	fcntl(err_pipe[0], F_SETFL, O_NONBLOCK);
 	
 	char err = 0;
 	ssize_t n = read(err_pipe[0], &err, 1);
@@ -230,6 +231,7 @@ void CGIHandler::handleParentProcess(int err_pipe[2], const std::string& scriptP
 	}
 
 	fcntl(out_fd[0], F_SETFL, O_NONBLOCK);
+	fcntl(in_fd[1], F_SETFL, O_NONBLOCK);
 	started = true;
 	_startTime = time(NULL);
 }
@@ -509,9 +511,7 @@ void Client::checkCGIValid()
 		}
 	}
 	else if (!isFile(actualPath))
-	{
 		return errorResponse(404, "Not found");
-	}
 
 	newPath = actualPath;
 

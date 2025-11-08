@@ -14,7 +14,8 @@ Client::Client(int fd, Server* srv)
       sentAll(false),
       fileOpened(false),
       cgiHandler(NULL),
-      isCGI(false)
+      isCGI(false),
+      bytesSent(0)
 {
     bodySize = 0;
     sentAll = false;
@@ -305,26 +306,21 @@ void Client::handleCompleteRequest()
 	location = findMathLocation(currentRequest->getPath());
 	newPath = joinPath();
 	
-	// Check if this location has CGI configured
 	const std::map<std::string, std::string>& cgiMap = location->getCgi();
 	if (!cgiMap.empty())
 	{
 		try
 		{
 			checkCGIValid();
-			// If checkCGIValid() set isCGI and returned, we're done
 			if (getIsCGI())
 				return;
 		}
 		catch (const std::exception& e)
 		{
-			// CGI initialization failed - return 500 error
 			std::cerr << "CGI Error: " << e.what() << std::endl;
-			return errorResponse(500, "INTERNAL SERVER ERROR");
+			return errorResponse(500, "Internal Server Error");
 		}
 	}
-	
-	// Not CGI or CGI not matched - handle as regular request
 	if (currentRequest->getMethod() == "GET")
 		handleGET();
 	else if (currentRequest->getMethod() == "DELETE")

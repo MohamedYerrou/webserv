@@ -107,6 +107,7 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		client->handleFile();
 		Response& currentResponse = client->getResponse();
 		std::string res = currentResponse.build();
+		
 		ssize_t sent = send(fd, res.c_str(), res.length(), 0);
 		if (sent == -1)
 		{
@@ -115,7 +116,10 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			delete client;
 			clients.erase(fd);
 			close(fd);
+			return;
 		}
+		if (static_cast<size_t>(sent) < res.length())
+			std::cout << "Partial send: " << sent << "/" << res.length() << " bytes" << std::endl;
 	}
 	else
 	{
@@ -159,7 +163,6 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	}
 	else
 	{
-		std::cout << "hahahahaha" << std::endl;
 		std::string body = cgi->getBuffer();
 		
 		if (body.size() == 1 && body[0] == 'E')
@@ -192,7 +195,17 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 	
 	ssize_t sent = send(fd, response.c_str(), response.length(), 0);
 	if (sent == -1)
+	{
 		std::cout << "CGI Sent Error: " << strerror(errno) << std::endl;
+		client->cleanupCGI();
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		delete client;
+		clients.erase(fd);
+		close(fd);
+		return;
+	}
+	if (static_cast<size_t>(sent) < response.length())
+		std::cout << "CGI Partial send: " << sent << "/" << response.length() << " bytes" << std::endl;
 	client->cleanupCGI();
 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 	delete client;
@@ -233,16 +246,16 @@ void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
 				else
 					++it;
 			}
-			// else
-			// {
-			// 	std::string error_body = HTML_ERROR_408;
-			// 	std::string str = HTTP_ERROR_RESPONSE("408 Request Timeout", error_body);
+			else
+			{
+				std::string error_body = HTML_ERROR_408;
+				std::string str = HTTP_ERROR_RESPONSE("408 Request Timeout", error_body);
 				
-			// 	epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
-			// 	close(it->first);
-			// 	delete client;
-			// 	clients.erase(it++);
-			// }
+				epoll_ctl(epfd, EPOLL_CTL_DEL, it->first, NULL);
+				close(it->first);
+				delete client;
+				clients.erase(it++);
+			}
 		}
 		else
 			it++;
