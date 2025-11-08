@@ -259,7 +259,6 @@ void Server::handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server
 		}
 		else if (bytesRead == 0)
 		{
-			// EOF - CGI script finished writing
 			int status;
 			pid_t cgi_pid = cgiClient->getCGIHandler()->getPid();
 			pid_t result = waitpid(cgi_pid, &status, WNOHANG);
@@ -284,7 +283,6 @@ void Server::handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server
 		}
 		else
 		{
-			// bytesRead == -1: Error reading from CGI
 			std::cerr << "CGI read error on fd " << fd << std::endl;
 			cgiClient->getCGIHandler()->setErrorCode(502);
 			cgiClient->getCGIHandler()->setError(true);
