@@ -124,11 +124,6 @@ void    Client::handleGET()
             handleRedirection();
             return;
         }
-        if (location->getRoot().empty())
-        {
-            errorResponse(500, "Missing root directive");
-            return;
-        }
         std::string totalPath = joinPath();
         if (isDir(totalPath))
             handleDirectory(totalPath);

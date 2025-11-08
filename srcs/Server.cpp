@@ -68,7 +68,6 @@ void	Server::setMaxBodySize(std::string size)
 		}
 	}
 	ss >> client_max_body_size;
-	std::cout << client_max_body_size << std::endl;
 }
 
 size_t	Server::getMaxBodySize()
@@ -122,10 +121,7 @@ void	Server::addCgiIn(CGIContext CGIctx, int epfd)
 	int pipe_fd = CGIctx.pipe_to_cgi;
 		
 	if (CGIstdIn.find(pipe_fd) != CGIstdIn.end())
-	{
-		std::cerr << "Warning: CGI input pipe " << pipe_fd << " already registered" << std::endl;
 		return;
-	}
 	
 	CGIstdIn[pipe_fd] = CGIctx;
 	
@@ -145,10 +141,7 @@ void	Server::addCgiOut(CGIContext CGIctx, int epfd)
 	int pipe_fd = CGIctx.pipe_from_cgi;
 		
 	if (CGIstdOut.find(pipe_fd) != CGIstdOut.end())
-	{
-		std::cerr << "Warning: CGI output pipe " << pipe_fd << " already registered" << std::endl;
 		return;
-	}
 	
 	CGIstdOut[pipe_fd] = CGIctx;
 	
@@ -200,10 +193,7 @@ void Server::handleCGIStdinEvent(int epfd, int fd, uint32_t event_flags, Server*
 			else if (written == 0)
 				cleanupCGIPipe(epfd, fd, server, true);
 			else
-			{
-				std::cerr << "CGI write error on fd " << fd << std::endl;
 				cleanupCGIPipe(epfd, fd, server, true);
-			}
 		}
 		else
 			cleanupCGIPipe(epfd, fd, server, true);
@@ -254,9 +244,7 @@ void Server::handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server
 		ssize_t bytesRead = read(fd, buf, sizeof(buf));
 		
 		if (bytesRead > 0)
-		{
 			cgiClient->getCGIHandler()->appendResponse(buf, bytesRead);
-		}
 		else if (bytesRead == 0)
 		{
 			int status;
@@ -283,7 +271,6 @@ void Server::handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server
 		}
 		else
 		{
-			std::cerr << "CGI read error on fd " << fd << std::endl;
 			cgiClient->getCGIHandler()->setErrorCode(502);
 			cgiClient->getCGIHandler()->setError(true);
 			cgiClient->getCGIHandler()->setComplete(true);
@@ -317,7 +304,21 @@ bool Server::handleCGIEvent(int epfd, int fd, uint32_t event_flags, std::map<int
 			return true;
 		}
 	}
-	
 	return false;
 }
 
+void	Server::session_expiration()
+{
+	std::map<std::string, Session>::iterator it;
+
+	for (it = sessions.begin(); it != sessions.end(); )
+	{
+		if (time(NULL) - it->second.last_access > 4)
+		{
+			sessions.erase(it++);
+		}
+		else
+			it++;
+	}
+	
+}

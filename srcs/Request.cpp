@@ -228,7 +228,6 @@ void    Request::parseLine(const std::string& raw)
             throw std::runtime_error("Bad request: Invalid uri");
         if (protocol.empty())
             throw std::runtime_error("Bad request: protocol empty");
-        std::cout << "PRotocol: " << protocol << std::endl;
         if (protocol != "HTTP/1.0" && protocol != "HTTP/1.1")
             throw std::runtime_error("Bad request: Invalid protocol");
         // if (protocol != "http/1.0")

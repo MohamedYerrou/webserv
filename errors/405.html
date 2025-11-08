@@ -1,24 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>405 Method Not Allowed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>405 - Method Not Allowed</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2d3436;
+        }
+        
+        .error-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3rem 4rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
-            padding: 50px;
+            max-width: 600px;
+            width: 90%;
         }
-        h1 {
-            font-size: 50px;
+        
+        .error-code {
+            font-size: 8rem;
+            font-weight: 700;
+            color: #9b59b6;
+            line-height: 1;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
-        p {
-            font-size: 20px;
+        
+        .error-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+        }
+        
+        .error-message {
+            font-size: 1.1rem;
+            color: #636e72;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        
+        .back-button {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: #9b59b6;
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background: #8e44ad;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 <body>
-    <h1>405 Method Not Allowed</h1>
-    <p>The requested method is not supported for this resource.</p>
+    <div class="error-container">
+        <div class="error-code">405</div>
+        <h1 class="error-title">Method Not Allowed</h1>
+        <p class="error-message">
+            Sorry, the HTTP method you're trying to use is not supported for this resource.
+            Please check the allowed methods and try again.
+        </p>
+        <a href="/" class="back-button">Go Back Home</a>
+    </div>
 </body>
 </html>

@@ -47,11 +47,6 @@ void    Client::handleDELETE()
             errorResponse(405, "Method not allowed");
             return;
         }
-        if (location->getRoot().empty())
-        {
-            errorResponse(500, "Missing root directive");
-            return;
-        }
         std::string totalPath = joinPath();
         std::cout << "total path: " << totalPath << std::endl;
         if (isDir(totalPath))

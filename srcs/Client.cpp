@@ -13,17 +13,14 @@ Client::Client(int fd, Server* srv)
       location(NULL),
       sentAll(false),
       fileOpened(false),
+      oneBody(false),
+      inBody(false),
+      finishBody(false),
+      lastActivityTime(time(NULL)),
+      sess(NULL),
       cgiHandler(NULL),
       isCGI(false)
 {
-    bodySize = 0;
-    sentAll = false;
-	fileOpened = false;
-    oneBody = false;
-    inBody = false;
-    finishBody = false;
-    lastActivityTime = time(NULL);
-    sess = NULL;
 }
 
 Client::~Client()
@@ -118,7 +115,6 @@ void    Client::handleSession()
 {
     if (currentRequest->getHeaders().count("cookie") == 0)
     {
-        std::cout << "First cookie" << std::endl;
         std::string sid = generateSessionId();
         currentServer->getSessions()[sid] = Session();
         currentServer->getSessions()[sid].id = sid;
@@ -221,35 +217,21 @@ void    Client::handleFile()
     {
         std::string message;
         Session     sess;
-        std::cout << "HHH: " << currentRequest->getPath() << std::endl;
         if (currentRequest->getPath() == "/profile.html")
         {
-            std::cout << "step1" << std::endl;
             if (currentRequest->getHeaders().count("cookie"))
             {
-                std::cout << "step2" << std::endl;
-                std::map<std::string, std::string>::iterator it;
-                for (it = cookies.begin(); it != cookies.end(); it++)
-                {
-                    std::cout << it->first << " ==> " << it->second << std::endl;
-                }
                 std::string sid = cookies["session_id"];
-                std::map<std::string, Session> ses = currentServer->getSessions();
-                std::map<std::string, Session>::iterator ite;
-                for (ite = ses.begin(); ite != ses.end(); ite++)
-                {
-                    std::cout << ite->first << " ==> " << std::endl;
-                }
                 if (currentServer->getSessions().count(sid))
                 {
-                    std::cout << "step3" << std::endl;
                     sess = currentServer->getSessions().at(sid);
                     message = "Welcome back " + sess.data["username"] + ", your session_id is: " + sess.id;
                 }
+                else
+                    message = "Your session key has been expired";
             }
             else
             {
-                std::cout << "step11" << std::endl;
                 message = "Welcome guest";
             }
             std::stringstream body;
@@ -303,6 +285,11 @@ const Location*   Client::findMathLocation(std::string url)
 void Client::handleCompleteRequest()
 {
 	location = findMathLocation(currentRequest->getPath());
+    if (location->getRoot().empty())
+    {
+        errorResponse(500, "Missing root directive");
+        return;
+    }
 	newPath = joinPath();
 	
 	const std::map<std::string, std::string>& cgiMap = location->getCgi();
@@ -324,6 +311,95 @@ void Client::handleCompleteRequest()
 		handleGET();
 	else if (currentRequest->getMethod() == "DELETE")
 		handleDELETE();
+}
+
+void    Client::defaultResponse(int code, const std::string& error)
+{
+    std::stringstream body;
+    body << "<!DOCTYPE html>"
+        << "<html lang=\"en\">"
+        << "<head>"
+        << "<meta charset=\"UTF-8\">"
+        << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+        << "<title>" << code << " - " << getStatusText(code) << "</title>"
+        << "<style>"
+        << "* { margin: 0; padding: 0; box-sizing: border-box; }"
+        << "@keyframes gradientBG {"
+        << "    0% { background-position: 0% 50%; }"
+        << "    50% { background-position: 100% 50%; }"
+        << "    100% { background-position: 0% 50%; }"
+        << "}"
+        << "body {"
+        << "    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;"
+        << "    background: linear-gradient(-45deg, "
+        << (code >= 500 ? "#ff6b6b, #f06595, #cc5de8, #845ef7" : 
+            (code >= 400 ? "#ffd43b, #ff922b, #ff6b6b, #f06595" : 
+                         "#74c0fc, #4dabf7, #228be6, #15aabf")) << ");"
+        << "    background-size: 400% 400%;"
+        << "    animation: gradientBG 15s ease infinite;"
+        << "    height: 100vh;"
+        << "    display: flex;"
+        << "    align-items: center;"
+        << "    justify-content: center;"
+        << "    color: #2d3436;"
+        << "}"
+        << ".error-container {"
+        << "    background: rgba(255, 255, 255, 0.92);"
+        << "    padding: 3.5rem 4rem;"
+        << "    border-radius: 24px;"
+        << "    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);"
+        << "    text-align: center;"
+        << "    max-width: 600px;"
+        << "    width: 90%;"
+        << "    border: 1px solid rgba(255, 255, 255, 0.2);"
+        << "    backdrop-filter: blur(10px);"
+        << "}"
+        << ".error-code {"
+        << "    font-size: 9rem;"
+        << "    font-weight: 800;"
+        << "    background: linear-gradient(45deg, "
+        << (code >= 500 ? "#ff6b6b, #e74c3c" : (code >= 400 ? "#ffd43b, #e67e22" : "#74c0fc, #3498db")) << ");"
+        << "    -webkit-background-clip: text;"
+        << "    -webkit-text-fill-color: transparent;"
+        << "    line-height: 1;"
+        << "    margin-bottom: 1.5rem;"
+        << "    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.1);"
+        << "    letter-spacing: -2px;"
+        << "}"
+        << ".error-title {"
+        << "    font-size: 2.5rem;"
+        << "    font-weight: 700;"
+        << "    margin-bottom: 1.5rem;"
+        << "    color: #1a1c1d;"
+        << "    letter-spacing: -0.5px;"
+        << "    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);"
+        << "}"
+        << ".error-message {"
+        << "    font-size: 1.2rem;"
+        << "    color: #4a4f52;"
+        << "    line-height: 1.7;"
+        << "    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);"
+        << "}"
+        << "</style>"
+        << "</head>"
+        << "<body>"
+        << "<div class=\"error-container\">"
+        << "<div class=\"error-code\">" << code << "</div>"
+        << "<h1 class=\"error-title\">" << getStatusText(code) << "</h1>"
+        << "<p class=\"error-message\">" << error << "</p>"
+        << "</div>"
+        << "</body>"
+        << "</html>";
+
+    std::string bodyStr = body.str();
+    currentResponse = Response();
+    currentResponse.setProtocol("HTTP/1.0");
+    currentResponse.setStatus(code, getStatusText(code));
+    currentResponse.setHeaders("Content-Type", "text/html");
+    currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
+    currentResponse.setHeaders("Date", currentDate());
+    currentResponse.setHeaders("Connection", "close");
+    currentResponse.setBody(bodyStr);
 }
 
 
@@ -363,35 +439,18 @@ void    Client::errorResponse(int code, const std::string& error)
             }
         }
     }
-    std::stringstream body;
-    body << "<!DOCTYPE HTML>"
-        << "<html><head><title>"<< code << " - " << getStatusText(code) << "</title></head>"
-        << "<body><h1>"<< code << " - " << getStatusText(code) << "</h1>"
-        << "<p>" << error << "</p>"
-        << "</body></html>";
-
-    std::string bodyStr = body.str();
-    currentResponse = Response();
-    currentResponse.setProtocol("HTTP/1.0");
-    currentResponse.setStatus(code, getStatusText(code));
-    currentResponse.setHeaders("Content-Type", "text/html");
-    currentResponse.setHeaders("Content-Length", intTostring(bodyStr.length()));
-    currentResponse.setHeaders("Date", currentDate());
-    currentResponse.setHeaders("Connection", "close");
-    currentResponse.setBody(bodyStr);
+    defaultResponse(code, error);
 }
 
 void    Client::handleHeaders(const std::string& raw)
 {
-    std::cout << "Header request" << std::endl;
-    std::cout << raw << std::endl;
+    // std::cout << raw << std::endl;
     try
     {
         currentRequest = new Request();
         currentRequest->parseRequest(raw);
         // parsedRequest(*currentRequest);
         bodySize = currentRequest->getContentLength();
-        std::cout << "BODY TOTAL SIZE: " << bodySize << std::endl;
         if (bodySize > currentServer->getMaxBodySize())
         {
             errorResponse(413, "Payload Too Large");
@@ -496,6 +555,7 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
+            handleSession();
             size_t bodyInHeader = headers.length() - headerPos;
             if (hasBody && bodyInHeader > 0)
             {
@@ -504,15 +564,6 @@ void    Client::appendData(const char* buf, ssize_t length)
                     if (reqComplete)
                         return;
                     oneBody = true;
-                    // std::string target_path = constructFilePath(currentRequest->getPath());
-                    // if (!isDir(target_path))
-                    // {
-                    //     reqComplete = true;
-                    //     errorResponse(404, "NOT FOUND");
-                    //     return;
-                    // }
-                    // if (target_path.empty() && reqComplete)
-                    //     return;
                     currentRequest->generateTmpFile(target_path, "");
                 }
                 std::string bodyStart = headers.substr(headerPos);

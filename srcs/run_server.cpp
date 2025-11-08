@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <csignal>
-#include "Server.hpp"
+#include "../includes/Server.hpp"
 #include "Client.hpp"
 #include "Utils.hpp"
 #include "HtmlMacros.hpp"
@@ -118,12 +118,16 @@ void	handleClientResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			close(fd);
 			return;
 		}
-		if (static_cast<size_t>(sent) < res.length())
-			std::cout << "Partial send: " << sent << "/" << res.length() << " bytes" << std::endl;
+		if (sent == 0)
+		{
+			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+			delete client;
+			clients.erase(fd);
+			close(fd);
+		}
 	}
 	else
 	{
-		std::cout << "Response has been sent" << std::endl;
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete client;
 		clients.erase(fd);
@@ -204,13 +208,14 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		close(fd);
 		return;
 	}
-	if (static_cast<size_t>(sent) < response.length())
-		std::cout << "CGI Partial send: " << sent << "/" << response.length() << " bytes" << std::endl;
-	client->cleanupCGI();
-	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-	delete client;
-	clients.erase(fd);
-	close(fd);
+	if (sent == 0)
+	{
+		client->cleanupCGI();
+		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+		delete client;
+		clients.erase(fd);
+		close(fd);
+	}
 }
 
 void	handleTimeOut(int epfd, std::map<int, Client*>& clients)
@@ -275,6 +280,8 @@ void	sigInstall(void)
 	signal(SIGQUIT, sigHandler);
 }
 
+
+
 void run_server(int epfd, std::map<int, Server*>& servers_fd)
 {
 	sigInstall();
@@ -289,6 +296,11 @@ void run_server(int epfd, std::map<int, Server*>& servers_fd)
 			if (errno == EINTR)
 				continue;
 			throw_exception("epoll_wait: ", strerror(errno));
+		}
+		std::map<int, Server*>::iterator it;
+		for (it = servers_fd.begin(); it != servers_fd.end(); it++)
+		{
+			it->second->session_expiration();
 		}
 		handleTimeOut(epfd, clients);
         for (int i = 0; i < nfds; i++)

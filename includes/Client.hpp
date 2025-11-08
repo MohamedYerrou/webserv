@@ -88,6 +88,7 @@ class Client
 		bool			allowedMethod(const std::string& method);
 		void			handleRedirection();
 		void			errorResponse(int code, const std::string& error);
+		void    		defaultResponse(int code, const std::string& error);
 		void			handleDirectory(const std::string& path);
 		void			handleFile();
 		void			listingDirectory(std::string path);

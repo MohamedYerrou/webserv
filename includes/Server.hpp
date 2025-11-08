@@ -55,6 +55,7 @@ class Server
 	static void						handleCGIStdoutEvent(int epfd, int fd, uint32_t event_flags, Server* server, std::map<int, Client*>& clients);
 	static void						cleanupCGIPipe(int epfd, int fd, Server* server, bool is_stdin);
 	std::map<std::string, Session>&	getSessions();
+	void							session_expiration();
 };
 
 #endif

@@ -4,11 +4,11 @@ server {
     client_max_body_size 10187042480;
 
     location / {
-        root /home/myerrou/mainweb;
-        index index11.html index1.html;
+        root /home/toro/Desktop/webserv;
+        index index116.html index16.html;
         methods GET POST DELETE;
         autoindex on;
-        upload_store /home/myerrou/mainweb;
+        upload_store /home/toro/Desktop/webserv;
         error_page 403 /errors/403.html;
         error_page 404 /errors/404.html;
         error_page 405 /errors/405.html;
@@ -18,25 +18,25 @@ server {
     }
 
     location /upload {
-        root /home/myerrou/mainweb/upload;
-        upload_store /home/myerrou/mainweb/upload;
+        root /home/toro/Desktop/webserv/upload;
+        upload_store /home/toro/Desktop/webserv/upload;
         index index1.html;
         methods GET POST DELETE;
         autoindex on;
     }
 
     location /cgi {
-        root /home/myerrou/mainweb/cgi-bin;
+        root /home/toro/Desktop/webserv/cgi-bin;
         index ;
         methods GET POST;
-        upload_store /home/myerrou/mainweb;
+        upload_store /home/toro/Desktop/webserv;
         autoindex on;
         cgi .php /usr/bin/php-cgi;
         cgi .py /usr/bin/python3;
     }
     
     location /cgibad {
-        root /home/myerrou/mainweb/cgi-bin;
+        root /home/toro/Desktop/webserv/cgi-bin;
         methods GET POST;
         autoindex off;
         cgi .py /nonexistent/python3;
@@ -54,7 +54,6 @@ server {
 #         cgi .php /usr/bin/php-cgi;
 #         cgi .py  /usr/bin/python3;
 #     }
-# }
 #     location /cgi-bin {
 #         cgi .php /usr/bin/php-cgi;
 #         cgi .py  /usr/bin/python3;
