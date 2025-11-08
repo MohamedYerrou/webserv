@@ -57,10 +57,6 @@ class Client
 		CGIHandler* cgiHandler;
 		bool		isCGI;
 		std::string newPath;
-		
-		// Partial send tracking
-		std::string pendingResponse;
-		size_t		bytesSent;
 
 	public:
 		Client(int fd, Server* srv);

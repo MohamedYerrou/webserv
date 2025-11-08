@@ -14,8 +14,7 @@ Client::Client(int fd, Server* srv)
       sentAll(false),
       fileOpened(false),
       cgiHandler(NULL),
-      isCGI(false),
-      bytesSent(0)
+      isCGI(false)
 {
     bodySize = 0;
     sentAll = false;
