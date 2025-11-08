@@ -147,16 +147,9 @@ std::vector<char*> CGIHandler::buildEnvp(const std::map<std::string, std::string
 
 void CGIHandler::executeScript(const std::string& scriptPath, std::vector<char*>& envp)
 {
-	// ssize_t n;
 	if (access(scriptPath.c_str(), F_OK) != 0)
 	{
 		write(STDOUT_FILENO, "E", 1);
-		// if (n == 0 || n == -1)
-		// {
-		// 	for (size_t i = 0; i < envp.size(); ++i)
-		// 		delete[] envp[i];
-		// 	exit(127);
-		// }
 		for (size_t i = 0; i < envp.size(); ++i)
 			delete[] envp[i];
 		exit(1);
@@ -191,12 +184,6 @@ void CGIHandler::executeScript(const std::string& scriptPath, std::vector<char*>
 	}
 	
 	write(STDOUT_FILENO, "E", 1);
-	// if (n == 0 || n == -1)
-	// {
-	// 	for (size_t i = 0; i < envp.size(); ++i)
-	// 		delete[] envp[i];
-	// 	exit(126);
-	// }
 	for (size_t i = 0; i < envp.size(); ++i)
 		delete[] envp[i];
 	exit(1);
@@ -225,26 +212,25 @@ void CGIHandler::handleParentProcess(int err_pipe[2], const std::string& scriptP
 	close(in_fd[0]);
 	close(out_fd[1]);
 	close(err_pipe[1]);
+	fcntl(err_pipe[0], F_SETFL, O_NONBLOCK);
 	
 	char err = 0;
 	ssize_t n = read(err_pipe[0], &err, 1);
 	close(err_pipe[0]);
-	// if (n == -1)
-	// {
-	// 	close(in_fd[1]);
-    //     close(out_fd[0]);
-    //     pid = -1;
-    //     return;
-	// }
-	// if (n == 0)
-	// {
-	// 	fcntl(out_fd[0], F_SETFL, O_NONBLOCK);
-	// 	started = true;
-	// 	_startTime = time(NULL);
-	// 	return;
-	// }
-	if (n == 1)
+	
+	if (n == -1 || n == 0)
 	{
+		// read failed or EOF with no data - treat as success (exec succeeded and closed pipe)
+		fcntl(out_fd[0], F_SETFL, O_NONBLOCK);
+		fcntl(in_fd[1], F_SETFL, O_NONBLOCK);
+		started = true;
+		_startTime = time(NULL);
+		return;
+	}
+	
+	if (n > 0)
+	{
+		// Child wrote error byte - exec failed
 		int status;
 		waitpid(pid, &status, WNOHANG);
 		pid = -1;
@@ -255,9 +241,10 @@ void CGIHandler::handleParentProcess(int err_pipe[2], const std::string& scriptP
 		throw std::runtime_error(std::string("execve failed for ") + scriptPath);
 	}
 
-	fcntl(out_fd[0], F_SETFL, O_NONBLOCK);
-	started = true;
-	_startTime = time(NULL);
+	// fcntl(out_fd[0], F_SETFL, O_NONBLOCK);
+	// fcntl(in_fd[1], F_SETFL, O_NONBLOCK);
+	// started = true;
+	// _startTime = time(NULL);
 }
 
 void CGIHandler::startCGI(const std::string& scriptPath,
@@ -304,6 +291,7 @@ std::string Client::findActualScriptPath(const std::map<std::string, std::string
 					}
 				}
 			}
+			
 			size_t lastSlash = testPath.find_last_of('/');
 			if (lastSlash == std::string::npos || lastSlash == 0)
 				break;
@@ -534,9 +522,7 @@ void Client::checkCGIValid()
 		}
 	}
 	else if (!isFile(actualPath))
-	{
 		return errorResponse(404, "Not found");
-	}
 
 	newPath = actualPath;
 

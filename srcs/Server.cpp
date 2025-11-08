@@ -165,6 +165,39 @@ void Server::cleanupCGIPipe(int epfd, int fd, Server* server, bool is_stdin)
 		server->CGIstdOut.erase(fd);
 }
 
+void Server::cleanupTimedOutCGI(int epfd, Client* client)
+{
+	if (!client || !client->getCGIHandler())
+		return;
+	
+	Server* server = client->getServer();
+	int stdin_fd = client->getCGIHandler()->getStdinFd();
+	int stdout_fd = client->getCGIHandler()->getStdoutFd();
+	
+	// Remove CGI pipes from epoll and server maps
+	if (stdin_fd != -1 && server->CGIstdIn.find(stdin_fd) != server->CGIstdIn.end())
+	{
+		epoll_ctl(epfd, EPOLL_CTL_DEL, stdin_fd, NULL);
+		close(stdin_fd);
+		server->CGIstdIn.erase(stdin_fd);
+	}
+	if (stdout_fd != -1 && server->CGIstdOut.find(stdout_fd) != server->CGIstdOut.end())
+	{
+		epoll_ctl(epfd, EPOLL_CTL_DEL, stdout_fd, NULL);
+		close(stdout_fd);
+		server->CGIstdOut.erase(stdout_fd);
+	}
+	
+	// Kill the CGI child process
+	pid_t cgi_pid = client->getCGIHandler()->getPid();
+	if (cgi_pid > 0)
+	{
+		kill(cgi_pid, SIGKILL);
+		int status;
+		waitpid(cgi_pid, &status, 0);
+	}
+}
+
 void Server::handleCGIStdinEvent(int epfd, int fd, uint32_t event_flags, Server* server)
 {
 	if (event_flags & (EPOLLERR | EPOLLHUP))

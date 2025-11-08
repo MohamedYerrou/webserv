@@ -2,7 +2,7 @@
 #define CLIENT_HPP
 
 #define	REQUEST_TIMEOUT 10
-#define CGI_TIMEOUT 15
+#define CGI_TIMEOUT 5
 
 #include <string>
 #include <iostream>

@@ -278,7 +278,10 @@ void    Request::generateTmpFile(const std::string& target_path, const std::stri
     std::map<std::string, std::string>::iterator it = queries.find("filename");
 
     if (!file.empty())
+    {
         fileName = target_path + "/" + file;
+        // std::cout << "FULL FILE NAME: " << fileName << std::endl;
+    }
     else if (it != queries.end())
         fileName = target_path + "/" + it->second;
     else
@@ -289,12 +292,14 @@ void    Request::generateTmpFile(const std::string& target_path, const std::stri
     uploadFile = open(fileName.c_str(), O_CREAT | O_RDWR, 0600);
     if (uploadFile == -1)
         throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
+    std::cout << "Temporary file has been created" << std::endl;
 }
 
 void    Request::appendBody(const char* buf, size_t length)
 {
+    // std::cout << "body from request" << std::endl;
     ssize_t count = write(uploadFile, buf, length);
-    if (count == -1 || count == 0)
+    if (count == 0 || count == -1)
         throw std::runtime_error("Write error: " + std::string(strerror(errno)));
 }
 
