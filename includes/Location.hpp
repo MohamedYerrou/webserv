@@ -24,15 +24,15 @@ private:
 public:
 	Location();
 	~Location();
-    void	set_path(std::string& path);
-	void	set_root(std::string& root);
-	void	set_upload_store(std::string& upload_store);
-	void	push_method(std::string& method);
-	void    push_index(std::vector<std::string>& tokens, size_t& i);
-	void	insert_cgi(std::vector<std::string>& tokens, size_t& i);
-	void	insert_error(std::vector<std::string>& tokens, size_t& i);
-	void	set_redir(std::vector<std::string>& tokens, size_t& i);
-	void	set_autoIndex(std::vector<std::string>& tokens, size_t& i);
+    void										set_path(std::string& path);
+	void										set_root(std::string& root);
+	void										set_upload_store(std::string& upload_store);
+	void										push_method(std::string& method);
+	void    									push_index(std::vector<std::string>& tokens, size_t& i);
+	void										insert_cgi(std::vector<std::string>& tokens, size_t& i);
+	void										insert_error(std::vector<std::string>& tokens, size_t& i);
+	void										set_redir(std::vector<std::string>& tokens, size_t& i);
+	void										set_autoIndex(std::vector<std::string>& tokens, size_t& i);
 
     //GETTERS
 	const std::string&							getPATH() const;

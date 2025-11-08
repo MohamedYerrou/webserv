@@ -18,17 +18,17 @@
 class Request
 {
 	private:
-		int									uploadFile;
-		std::string 						fileName;
-		std::string							method;
-		std::string							uri;
-		std::string							path;
-		std::string							protocol;
-		std::map<std::string, std::string>	headers;
-		std::map<std::string, std::string>	queries;
-		size_t								MAX_URL_LENGTH;
-		int									statusCode;
-		std::string							body;
+		int											uploadFile;
+		std::string 								fileName;
+		std::string									method;
+		std::string									uri;
+		std::string									path;
+		std::string									protocol;
+		std::map<std::string, std::string>			headers;
+		std::map<std::string, std::string>			queries;
+		size_t										MAX_URL_LENGTH;
+		int											statusCode;
+		std::string									body;
 	public:
 		Request();
 		~Request();

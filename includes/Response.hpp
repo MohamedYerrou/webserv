@@ -19,12 +19,12 @@ class Response
 	public:
 		Response();
 		~Response();
-		void		setProtocol(std::string protocol);
-		void		setStatus(int code, std::string text);
-		void		setHeaders(std::string key, std::string value);
-		void		setBody(std::string body);
-		std::string	build();
-		void		setEndHeaders(bool flag);
+		void								setProtocol(std::string protocol);
+		void								setStatus(int code, std::string text);
+		void								setHeaders(std::string key, std::string value);
+		void								setBody(std::string body);
+		std::string							build();
+		void								setEndHeaders(bool flag);
 };
 
 #endif

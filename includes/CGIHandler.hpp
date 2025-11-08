@@ -13,17 +13,17 @@ class Client;
 class CGIHandler
 {
 private:
-    Client* client;
-    int in_fd[2];
-    int out_fd[2];
-    pid_t pid;
-    bool started;
-    bool finished;
-    std::string buffer;
-    time_t _startTime;
-    bool is_complete;
-    bool is_error;
-    int error_code;
+    Client*         client;
+    int             in_fd[2];
+    int             out_fd[2];
+    pid_t           pid;
+    bool            started;
+    bool            finished;
+    std::string     buffer;
+    time_t          _startTime;
+    bool            is_complete;
+    bool            is_error;
+    int             error_code;
 
 public:
     CGIHandler(Client* c);
