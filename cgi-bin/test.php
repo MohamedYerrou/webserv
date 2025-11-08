@@ -1,108 +1,90 @@
 #!/usr/bin/php-cgi
 <?php
-header("Content-Type: text/html; charset=UTF-8");
+// Set the content type for CGI output
+header('Content-Type: text/html; charset=utf-8');
+
+// Basic CGI environment information
+echo "<!DOCTYPE html>\n";
+echo "<html>\n";
+echo "<head>\n";
+echo "    <title>PHP CGI Test</title>\n";
+echo "    <style>\n";
+echo "        body { font-family: Arial, sans-serif; margin: 40px; }\n";
+echo "        .info { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }\n";
+echo "        .success { color: green; font-weight: bold; }\n";
+echo "        .error { color: red; font-weight: bold; }\n";
+echo "    </style>\n";
+echo "</head>\n";
+echo "<body>\n";
+echo "<h1>PHP CGI Test Page</h1>\n";
+
+// Check if running as CGI
+if (isset($_SERVER['GATEWAY_INTERFACE'])) {
+    echo "<p class='success'>✓ Running as CGI</p>\n";
+    echo "<div class='info'>\n";
+    echo "<strong>CGI Environment Variables:</strong><br>\n";
+    echo "GATEWAY_INTERFACE: " . $_SERVER['GATEWAY_INTERFACE'] . "<br>\n";
+    echo "SERVER_SOFTWARE: " . ($_SERVER['SERVER_SOFTWARE'] ?? 'Not set') . "<br>\n";
+    echo "REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD'] . "<br>\n";
+    echo "</div>\n";
+} else {
+    echo "<p class='error'>✗ Not running as CGI (probably running as module)</p>\n";
+}
+
+// Server information
+echo "<div class='info'>\n";
+echo "<strong>Server Information:</strong><br>\n";
+echo "PHP Version: " . phpversion() . "<br>\n";
+echo "Server API: " . php_sapi_name() . "<br>\n";
+echo "Document Root: " . $_SERVER['DOCUMENT_ROOT'] . "<br>\n";
+echo "Script Filename: " . $_SERVER['SCRIPT_FILENAME'] . "<br>\n";
+echo "</div>\n";
+
+// Request information
+echo "<div class='info'>\n";
+echo "<strong>Request Information:</strong><br>\n";
+echo "Remote Address: " . $_SERVER['REMOTE_ADDR'] . "<br>\n";
+echo "User Agent: " . $_SERVER['HTTP_USER_AGENT'] . "<br>\n";
+echo "Query String: " . ($_SERVER['QUERY_STRING'] ?? 'None') . "<br>\n";
+echo "</div>\n";
+
+// Test PHP functionality
+echo "<div class='info'>\n";
+echo "<strong>PHP Functionality Test:</strong><br>\n";
+echo "Current Date/Time: " . date('Y-m-d H:i:s') . "<br>\n";
+echo "Random Number: " . rand(1, 100) . "<br>\n";
+echo "Working Directory: " . getcwd() . "<br>\n";
+echo "</div>\n";
+
+// Form test
+echo "<div class='info'>\n";
+echo "<strong>Form Test (GET method):</strong><br>\n";
+echo "<form method='get'>\n";
+echo "    Name: <input type='text' name='name' value='" . ($_GET['name'] ?? '') . "'>\n";
+echo "    <input type='submit' value='Submit'>\n";
+echo "</form>\n";
+if (isset($_GET['name']) && !empty($_GET['name'])) {
+    echo "Hello, " . htmlspecialchars($_GET['name']) . "!<br>\n";
+}
+echo "</div>\n";
+
+// File upload test (if POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    echo "<div class='info'>\n";
+    echo "<strong>POST Data Received:</strong><br>\n";
+    echo "<pre>";
+    print_r($_POST);
+    echo "</pre>\n";
+    echo "</div>\n";
+}
+
+echo "<hr>\n";
+echo "<p><strong>CGI Test Results:</strong> ";
+if (isset($_SERVER['GATEWAY_INTERFACE'])) {
+    echo "<span class='success'>CGI is working correctly!</span></p>\n";
+} else {
+    echo "<span class='error'>CGI may not be configured properly.</span></p>\n";
+}
+echo "</body>\n";
+echo "</html>\n";
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>PHP CGI | Hello</title>
-    <style>
-        body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            background: radial-gradient(circle at top left, #0d1b2a, #1b263b, #0a192f);
-            color: #e0e6ed;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 700px;
-            margin: 80px auto;
-            background: #1b263b;
-            border: 2px solid #3a506b;
-            border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-            padding: 2rem;
-            animation: fadeIn 0.6s ease;
-        }
-
-        h1 {
-            text-align: center;
-            color: #66c0f4;
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        p.intro {
-            text-align: center;
-            color: #b8c7d9;
-            font-size: 1.1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        hr {
-            border: none;
-            border-top: 1px solid #3a506b;
-            margin: 1.5rem 0;
-        }
-
-        h2 {
-            color: #5dade2;
-            border-left: 4px solid #66c0f4;
-            padding-left: 10px;
-            margin-bottom: 0.8rem;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            background: #0f1e33;
-            border: 1px solid #2e4a68;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 8px 0;
-        }
-
-        li b {
-            color: #66c0f4;
-        }
-
-        footer {
-            text-align: center;
-            color: #7a8ca7;
-            font-size: 0.9rem;
-            margin-top: 2rem;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* subtle hover glow */
-        li:hover {
-            background: #132942;
-            border-color: #66c0f4;
-            transition: all 0.2s ease-in-out;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Hello from PHP CGI</h1>
-        <p class="intro">This is a simple CGI script running inside our web server.</p>
-        <hr>
-        <h2>CGI Information</h2>
-        <ul>
-            <li><b>Server Software:</b> <?= $_SERVER["SERVER_SOFTWARE"] ?? "Unknown" ?></li>
-            <li><b>Request Method:</b> <?= $_SERVER["REQUEST_METHOD"] ?? "Unknown" ?></li>
-            <li><b>Server Protocol:</b> <?= $_SERVER["SERVER_PROTOCOL"] ?? "Unknown" ?></li>
-        </ul>
-        <footer>Webserv PHP CGI © 2025</footer>
-    </div>
-</body>
-</html>

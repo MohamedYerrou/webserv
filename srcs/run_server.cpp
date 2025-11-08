@@ -196,7 +196,6 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 			response = HTTP_ERROR_RESPONSE("502 Bad Gateway", error_body);
 		}
 	}
-	
 	ssize_t sent = send(fd, response.c_str(), response.length(), 0);
 	if (sent == -1)
 	{
@@ -208,13 +207,22 @@ void	handleClientCGIResponse(int epfd, int fd, std::map<int, Client*>& clients)
 		close(fd);
 		return;
 	}
-	if (sent == 0)
+	// if (sent == 0)
+	// {
+	// 	client->cleanupCGI();
+	// 	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+	// 	delete client;
+	// 	clients.erase(fd);
+	// 	close(fd);
+	// }
+	else
 	{
 		client->cleanupCGI();
 		epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 		delete client;
 		clients.erase(fd);
 		close(fd);
+		return;
 	}
 }
 

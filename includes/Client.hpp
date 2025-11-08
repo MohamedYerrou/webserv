@@ -2,7 +2,7 @@
 #define CLIENT_HPP
 
 #define	REQUEST_TIMEOUT 10
-#define CGI_TIMEOUT 5
+#define CGI_TIMEOUT 15
 
 #include <string>
 #include <iostream>
@@ -44,6 +44,7 @@ class Client
 		Response							currentResponse;
 		bool								sentAll;
 		bool								fileOpened;
+		bool								postFileOpened;
 		bool								oneBody;
 		std::string							boundary;
 		std::string							endBoundry;

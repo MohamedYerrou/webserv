@@ -13,6 +13,7 @@ Client::Client(int fd, Server* srv)
       location(NULL),
       sentAll(false),
       fileOpened(false),
+      postFileOpened(false),
       oneBody(false),
       inBody(false),
       finishBody(false),
@@ -210,8 +211,8 @@ void    Client::handleFile()
     }
     char    buffer[7000];
     fileStream.read(buffer, sizeof(buffer));
-    size_t bytesRead = fileStream.gcount();
-    if (bytesRead == 0)
+    ssize_t bytesRead = fileStream.gcount();
+    if (bytesRead == 0 || bytesRead == -1)
         sentAll = true;
     else
     {
@@ -247,7 +248,7 @@ void    Client::handleFile()
         }
 
         currentResponse.setBody(std::string(buffer, bytesRead));
-        if (bytesRead < sizeof(buffer))
+        if (bytesRead < (ssize_t)sizeof(buffer))
             sentAll = true;
     }
 }
@@ -555,6 +556,12 @@ void    Client::appendData(const char* buf, ssize_t length)
             endHeaders = true;
             headerPos += 4;
             handleHeaders(headers.substr(0, headerPos));
+            if (currentRequest->getMethod() == "POST")
+            {
+                handlePostError();
+                if (reqComplete)
+                    return;
+            }
             handleSession();
             size_t bodyInHeader = headers.length() - headerPos;
             if (hasBody && bodyInHeader > 0)
@@ -564,7 +571,7 @@ void    Client::appendData(const char* buf, ssize_t length)
                     if (reqComplete)
                         return;
                     oneBody = true;
-                    currentRequest->generateTmpFile(target_path, "");
+                    // currentRequest->generateTmpFile(target_path, "");
                 }
                 std::string bodyStart = headers.substr(headerPos);
                 handlePost(bodyStart.c_str(), bodyStart.length());
