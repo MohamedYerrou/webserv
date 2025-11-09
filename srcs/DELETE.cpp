@@ -48,7 +48,6 @@ void    Client::handleDELETE()
             return;
         }
         std::string totalPath = joinPath();
-        std::cout << "total path: " << totalPath << std::endl;
         if (isDir(totalPath))
             handleDeleteDir(totalPath);
         else if (isFile(totalPath))

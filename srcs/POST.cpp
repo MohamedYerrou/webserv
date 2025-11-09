@@ -47,8 +47,6 @@ void    Client::handleBodyHeaders()
             if (nextPos == std::string::npos)
                 return;
             std::string filename = body.substr(pos, nextPos - pos - 1);
-            std::cout << "FILENAME: " << filename << std::endl;
-            std::cout << "TARGER PATH: " << target_path << std::endl;
             currentRequest->generateTmpFile(target_path, filename);
             currentRequest->appendBody(bodyStart.c_str(), bodyStart.length());
         }
@@ -98,7 +96,6 @@ void    Client::handlePost(const char* buf, ssize_t length)
     bodySize -= toAppend;
     if (bodySize <= 0)
     {
-        std::cout << "BODY SIZE IS: " << bodySize << std::endl;
         currentResponse = Response();
         std::string bodyStr = "Upload done.";
         currentResponse.setProtocol(currentRequest->getProtocol());

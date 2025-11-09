@@ -223,7 +223,7 @@ void    Client::handleFile()
     {
         std::string message;
         Session     sess;
-        if (currentRequest->getPath() == "/Serve/profile.html")
+        if (currentRequest->getPath() == "/profile.html")
         {
             if (currentRequest->getHeaders().count("cookie"))
             {
@@ -231,7 +231,7 @@ void    Client::handleFile()
                 if (currentServer->getSessions().count(sid))
                 {
                     sess = currentServer->getSessions().at(sid);
-                    message = "Welcome back " + sess.data["username"] + ", your session_id is: " + sess.id;
+                    message = "Welcome back " + (sess.data["username"].empty() ? "guest" : sess.data["username"]) + ", your session_id is: " + sess.id;
                 }
                 else
                     message = "Your session key has been expired";

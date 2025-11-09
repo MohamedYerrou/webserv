@@ -17,11 +17,11 @@ server {
     }
 
     location /upload {
-        root /home/toro/Desktop/webserv;
+        root /home/toro/Desktop/webserv/upload;
         upload_store /home/toro/Desktop/webserv/upload;
         index index1.html;
         methods GET POST DELETE;
-        autoindex on;
+        autoindex off;
     }
 
     location /cgi {
@@ -43,43 +43,42 @@ server {
     }
 }
 
-# server {
-#     listen 31.84.569.4:9194;
-#     root /var/www/google;
-#     index index1.html;
-#     error_page 302 /errors/302.html;
-#     error_page 500 /errors/500.html;
+server {
+    listen 127.0.0.1:9900;
+    listen 127.0.0.1:4040;
+    client_max_body_size 10187042480;
 
-#     location /cgi-bin {
-#         cgi .php /usr/bin/php-cgi;
-#         cgi .py  /usr/bin/python3;
-#     }
-#     location /cgi-bin {
-#         cgi .php /usr/bin/php-cgi;
-#         cgi .py  /usr/bin/python3;
-#     }
-# }
+    location / {
+        root /home/toro/Desktop/webserv/Serve
+        index index2.html index1.html;
+        methods GET POST DELETE;
+        autoindex on;
+        upload_store /home/toro/Desktop/webserv
+    }
 
-# server {
-#     listen 127.0.0.1:3663;
-# server {
-#     listen 127.0.0.1:3663;
+    location /upload {
+        root /home/toro/Desktop/webserv/upload;
+        upload_store /home/toro/Desktop/webserv/upload;
+        index index1.html;
+        methods GET POST DELETE;
+        autoindex off;
+    }
 
-#     location /upload {
-#         root /home/myerrou/mainweb;
-#         methods GET;
-#         index index3.html;
-#         error_page 302 /errors/302.html;
-#         error_page 500 /errors/500.html;
-#         error_page 200 /errors/200.html;
-#     }
-# }
-#     location /upload {
-#         root /home/myerrou/mainweb;
-#         methods GET;
-#         index index3.html;
-#         error_page 302 /errors/302.html;
-#         error_page 500 /errors/500.html;
-#         error_page 200 /errors/200.html;
-#     }
-# }
+    location /cgi {
+        root /home/toro/Desktop/webserv/cgi-bin;
+        index ;
+        methods GET POST;
+        upload_store /home/toro/Desktop/webserv
+        autoindex on;
+        cgi .php /usr/bin/php-cgi;
+        cgi .py /usr/bin/python3;
+        cgi .pl /usr/bin/perl;
+    }
+    
+    location /cgibad {
+        root /home/toro/Desktop/webserv/cgi-bin;
+        methods GET POST;
+        autoindex off;
+        cgi .py /nonexistent/python3;
+    }
+}

@@ -292,7 +292,6 @@ void    Request::generateTmpFile(const std::string& target_path, const std::stri
     uploadFile = open(fileName.c_str(), O_CREAT | O_RDWR, 0600);
     if (uploadFile == -1)
         throw std::runtime_error("Cannot Create tmp file: " + std::string(strerror(errno)));
-    std::cout << "Temporary file has been created" << std::endl;
 }
 
 void    Request::appendBody(const char* buf, size_t length)
