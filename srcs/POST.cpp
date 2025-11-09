@@ -48,6 +48,7 @@ void    Client::handleBodyHeaders()
                 return;
             std::string filename = body.substr(pos, nextPos - pos - 1);
             std::cout << "FILENAME: " << filename << std::endl;
+            std::cout << "TARGER PATH: " << target_path << std::endl;
             currentRequest->generateTmpFile(target_path, filename);
             currentRequest->appendBody(bodyStart.c_str(), bodyStart.length());
         }

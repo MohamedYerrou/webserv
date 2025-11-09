@@ -220,7 +220,6 @@ void CGIHandler::handleParentProcess(int err_pipe[2], const std::string& scriptP
 	
 	if (n == -1 || n == 0)
 	{
-		// read failed or EOF with no data - treat as success (exec succeeded and closed pipe)
 		fcntl(out_fd[0], F_SETFL, O_NONBLOCK);
 		fcntl(in_fd[1], F_SETFL, O_NONBLOCK);
 		started = true;
@@ -230,7 +229,6 @@ void CGIHandler::handleParentProcess(int err_pipe[2], const std::string& scriptP
 	
 	if (n > 0)
 	{
-		// Child wrote error byte - exec failed
 		int status;
 		waitpid(pid, &status, WNOHANG);
 		pid = -1;

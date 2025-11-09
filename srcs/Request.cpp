@@ -299,7 +299,7 @@ void    Request::appendBody(const char* buf, size_t length)
 {
     // std::cout << "body from request" << std::endl;
     ssize_t count = write(uploadFile, buf, length);
-    if (count == 0 || count == -1)
+    if (count == -1)
         throw std::runtime_error("Write error: " + std::string(strerror(errno)));
 }
 
